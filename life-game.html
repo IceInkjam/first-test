@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生命游戏 · 细胞自动机</title>
+<meta name="description" content="康威生命游戏 —— 点格子养细胞，看它自己繁殖、迁徙、消亡">
+<style>
+/* ==========================================================================
+   生命游戏 —— 样式表
+   风格沿用猜词消消乐：薄荷绿 + 天空蓝浅色渐变、糖果质感卡片、柔和彩色投影。
+   ========================================================================== */
+
+:root {
+  /* 主色：清新的青绿 */
+  --mint:        #34c9a3;
+  --mint-dark:   #1fa586;
+  --mint-pale:   #e4f8f2;
+
+  /* 辅色：天空蓝 */
+  --sky:         #3ba9e8;
+  --sky-dark:    #2b8cc4;
+  --sky-pale:    #e3f3fd;
+
+  /* 点缀色 */
+  --sun:         #ffc93c;
+  --coral:       #ff7a6b;
+  --grape:       #9d7bea;
+
+  /* 中性色 */
+  --ink:         #2c3e46;
+  --ink-2:       #5c7078;
+  --ink-3:       #92a5ad;
+  --line:        #e2eef0;
+  --surface:     #ffffff;
+
+  /* 圆角与阴影 */
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 26px;
+  --r-pill: 999px;
+  --shadow-sm: 0 2px 6px rgba(44, 110, 130, .08);
+  --shadow-md: 0 6px 18px rgba(44, 110, 130, .12);
+  --shadow-lg: 0 16px 40px rgba(44, 110, 130, .16);
+
+  --font: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+          "Microsoft YaHei", Roboto, "Helvetica Neue", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px 16px 40px;
+
+  background:
+    radial-gradient(circle at 12% 10%, rgba(52, 201, 163, .20), transparent 45%),
+    radial-gradient(circle at 88% 88%, rgba(59, 169, 232, .20), transparent 45%),
+    linear-gradient(160deg, #f2fdfa 0%, #eef9fd 55%, #f4fbff 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.pill, .btn, .stat, .tool {
+  user-select: none;
+}
+
+/* ==========================================================================
+   主容器
+   ========================================================================== */
+.app {
+  width: min(100%, 900px);
+  background: rgba(255, 255, 255, .78);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 26px 26px 22px;
+}
+
+/* ==========================================================================
+   标题
+   ========================================================================== */
+.head {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.head h1 {
+  font-size: clamp(22px, 3.4vw, 30px);
+  font-weight: 800;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.head .sub {
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  letter-spacing: .5px;
+}
+
+.head .dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.head .dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.head .dots i:nth-child(1) { background: var(--mint); }
+.head .dots i:nth-child(2) { background: var(--sky); }
+.head .dots i:nth-child(3) { background: var(--sun); }
+.head .dots i:nth-child(4) { background: var(--coral); }
+.head .dots i:nth-child(5) { background: var(--grape); }
+
+/* ==========================================================================
+   按钮
+   ========================================================================== */
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+
+  border: none;
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, #55b6ea, var(--sky));
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--sky-dark), var(--shadow-sm);
+  transition: transform .1s ease, box-shadow .1s ease;
+}
+
+.btn:hover  { transform: translateY(-1px); box-shadow: 0 5px 0 var(--sky-dark), var(--shadow-md); }
+.btn:active { transform: translateY(3px);  box-shadow: 0 1px 0 var(--sky-dark); }
+
+.btn.green {
+  background: linear-gradient(180deg, #47d6b0, var(--mint));
+  box-shadow: 0 4px 0 var(--mint-dark), var(--shadow-sm);
+}
+.btn.green:hover  { box-shadow: 0 5px 0 var(--mint-dark), var(--shadow-md); }
+.btn.green:active { box-shadow: 0 1px 0 var(--mint-dark); }
+
+/* 运行中：按钮变成"暂停"的暖色，状态一眼可辨 */
+.btn.sun {
+  background: linear-gradient(180deg, #ffd76b, var(--sun));
+  color: #7a5600;
+  box-shadow: 0 4px 0 #d9a017, var(--shadow-sm);
+}
+.btn.sun:hover  { box-shadow: 0 5px 0 #d9a017, var(--shadow-md); }
+.btn.sun:active { box-shadow: 0 1px 0 #d9a017; }
+
+.btn.ghost {
+  background: #fff;
+  color: var(--ink-2);
+  border: 2px solid var(--line);
+  box-shadow: 0 3px 0 var(--line);
+}
+.btn.ghost:hover  { border-color: var(--mint); color: var(--mint-dark); }
+.btn.ghost:active { box-shadow: 0 1px 0 var(--line); }
+
+.btn:disabled { opacity: .45; pointer-events: none; box-shadow: none; }
+
+/* ==========================================================================
+   状态栏
+   ========================================================================== */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.stat {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px 8px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat .k {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  letter-spacing: 1px;
+}
+
+.stat .v {
+  font-size: clamp(18px, 2.6vw, 24px);
+  font-weight: 800;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat .v.gen   { color: var(--mint-dark); }
+.stat .v.alive { color: var(--sky-dark); }
+.stat .v.born  { color: #e0a100; }
+.stat .v.died  { color: var(--coral); }
+
+/* ==========================================================================
+   控制面板：速度 / 网格
+   ========================================================================== */
+.panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px 22px;
+  margin-bottom: 14px;
+  padding: 12px 20px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-sm);
+}
+
+.ctl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ctl .val {
+  min-width: 34px;
+  text-align: right;
+  color: var(--mint-dark);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 滑杆统一样式 */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 116px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--mint-pale), var(--sky-pale));
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #47d6b0, var(--mint));
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(31, 165, 134, .45);
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--mint);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(31, 165, 134, .45);
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   棋盘
+   ========================================================================== */
+.board-wrap {
+  position: relative;
+  background: rgba(255, 255, 255, .66);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 14px;
+  box-shadow: inset 0 2px 10px rgba(44, 110, 130, .05);
+}
+
+canvas#board {
+  display: block;
+  width: 100%;
+  border-radius: var(--r-md);
+  background: linear-gradient(160deg, #fbfeff, #f4fbfd);
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: crosshair;
+  touch-action: none;   /* 手机上拖动绘制时不要滚动页面 */
+}
+
+/* 棋盘上的浮动提示（例如"点格子养细胞"） */
+.board-tip {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+
+  padding: 8px 18px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .92);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+
+  opacity: 0;
+  transition: opacity .4s ease;
+}
+
+.board-tip.show { opacity: 1; }
+
+/* ==========================================================================
+   图案预设
+   ========================================================================== */
+.presets {
+  margin-top: 14px;
+}
+
+.presets .title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.presets .title::before,
+.presets .title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.tool {
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--line);
+  background: #fff;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .14s ease, border-color .2s ease,
+              color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.tool:hover {
+  border-color: var(--sky);
+  color: var(--sky-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.tool.active {
+  background: linear-gradient(180deg, #55b6ea, var(--sky));
+  border-color: var(--sky-dark);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--sky-dark);
+}
+
+/* 图案说明 */
+.preset-note {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  min-height: 20px;
+}
+
+/* ==========================================================================
+   底部状态条
+   ========================================================================== */
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 11px 18px;
+
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-sm);
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.status .msg {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.status .chip {
+  background: var(--mint-pale);
+  color: var(--mint-dark);
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: var(--r-pill);
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   规则说明
+   ========================================================================== */
+.rules {
+  margin-top: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.rules summary {
+  padding: 13px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-2);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color .2s ease, background .2s ease;
+}
+
+.rules summary::-webkit-details-marker { display: none; }
+
+.rules summary::after {
+  content: "▾";
+  margin-left: auto;
+  color: var(--ink-3);
+  transition: transform .25s ease;
+}
+
+.rules[open] summary::after { transform: rotate(180deg); }
+
+.rules summary:hover { color: var(--mint-dark); background: #fbfeff; }
+
+.rules .body {
+  padding: 4px 20px 18px;
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.9;
+}
+
+.rules .body ul { padding-left: 20px; }
+.rules .body li { margin: 5px 0; }
+.rules .body b { color: var(--mint-dark); }
+.rules .body .k { color: var(--sky-dark); font-weight: 700; }
+
+/* ==========================================================================
+   快捷键提示
+   ========================================================================== */
+.hint-bar {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+kbd {
+  display: inline-block;
+  padding: 1px 7px;
+  margin: 0 1px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media (max-width: 720px) {
+  .app { padding: 20px 18px 18px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  input[type="range"] { width: 88px; }
+}
+
+@media (max-width: 480px) {
+  body { padding: 12px 10px 28px; }
+  .app { padding: 16px 13px 14px; border-radius: var(--r-md); }
+
+  .head h1 { font-size: 20px; letter-spacing: 1px; }
+
+  .bar { gap: 7px; }
+  .btn { padding: 9px 14px; font-size: 13px; }
+
+  .panel { gap: 10px 16px; padding: 10px 14px; border-radius: var(--r-md); }
+
+  .stats { gap: 7px; }
+  .stat { padding: 8px 4px; }
+  .stat .k { font-size: 10.5px; letter-spacing: .5px; }
+
+  .board-wrap { padding: 9px; }
+
+  .tool { padding: 7px 13px; font-size: 12.5px; }
+
+  .status { font-size: 13px; padding: 10px 14px; }
+  .hint-bar { font-size: 11.5px; }
+  kbd { font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: .01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ==================== 标题 ==================== -->
+  <header class="head">
+    <h1><span class="emoji">🧫</span>生命游戏</h1>
+    <p class="sub">点格子养细胞，然后看它自己繁殖、迁徙、消亡</p>
+    <div class="dots" aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i>
+    </div>
+  </header>
+
+  <!-- ==================== 操作按钮 ==================== -->
+  <div class="bar">
+    <button class="btn green" id="btnPlay" type="button">▶ 开始演化</button>
+    <button class="btn" id="btnStep" type="button">⏭ 单步</button>
+    <button class="btn sun" id="btnRandom" type="button">🎲 随机铺满</button>
+    <button class="btn ghost" id="btnClear" type="button">🧹 清空</button>
+  </div>
+
+  <!-- ==================== 状态栏 ==================== -->
+  <div class="stats">
+    <div class="stat">
+      <div class="k">世代</div>
+      <div class="v gen" id="sGen">0</div>
+    </div>
+    <div class="stat">
+      <div class="k">存活细胞</div>
+      <div class="v alive" id="sAlive">0</div>
+    </div>
+    <div class="stat">
+      <div class="k">本轮新生</div>
+      <div class="v born" id="sBorn">0</div>
+    </div>
+    <div class="stat">
+      <div class="k">本轮消亡</div>
+      <div class="v died" id="sDied">0</div>
+    </div>
+  </div>
+
+  <!-- ==================== 速度与网格 ==================== -->
+  <div class="panel">
+    <label class="ctl" for="rSpeed">
+      速度
+      <input type="range" id="rSpeed" min="1" max="30" step="1" value="10">
+      <span class="val" id="vSpeed">10</span>
+    </label>
+    <label class="ctl" for="rSize">
+      格子
+      <input type="range" id="rSize" min="10" max="30" step="2" value="14">
+      <span class="val" id="vSize">14</span>
+    </label>
+  </div>
+
+  <!-- ==================== 棋盘 ==================== -->
+  <div class="board-wrap">
+    <canvas id="board" width="800" height="500" aria-label="生命游戏棋盘"></canvas>
+    <div class="board-tip show" id="boardTip">👆 先点几个格子，或者直接「随机铺满」</div>
+  </div>
+
+  <!-- ==================== 图案预设 ==================== -->
+  <div class="presets">
+    <div class="title">经典图案 · 点一下放置到棋盘中央</div>
+    <div class="preset-row" id="presetRow"></div>
+    <p class="preset-note" id="presetNote">滑翔机 会斜着一直飞，是生命游戏里最著名的图案</p>
+  </div>
+
+  <!-- ==================== 底部状态 ==================== -->
+  <div class="status">
+    <span class="msg" id="statusMsg">✨ 棋盘是空的，先养几个细胞吧</span>
+    <span class="chip" id="statusChip">边界：环绕</span>
+  </div>
+
+  <!-- ==================== 规则说明 ==================== -->
+  <details class="rules">
+    <summary>📖 它是怎么繁殖的？（三条规则）</summary>
+    <div class="body">
+      <p>
+        每个格子是一个细胞，只有<b>生</b>和<b>死</b>两种状态。每一代，
+        每个细胞看自己周围 8 个邻居，然后按三条规则同时决定下一代的命运：
+      </p>
+      <ul>
+        <li><span class="k">邻居 &lt; 2</span> → 死亡（太孤单，活不下去）</li>
+        <li><span class="k">邻居 = 2 或 3</span> → 存活（活着，继续活）</li>
+        <li><span class="k">邻居 &gt; 3</span> → 死亡（太拥挤，资源不够）</li>
+        <li><span class="k">死格邻居 = 3</span> → 复活（繁殖出一个新细胞）</li>
+      </ul>
+      <p>
+        就这几条判断，却能长出滑翔机、脉冲星这些会移动、会振荡的图案。
+        它由数学家 John Conway 在 1970 年提出，
+        是研究「简单规则如何产生复杂行为」的经典模型。
+      </p>
+    </div>
+  </details>
+
+  <p class="hint-bar">
+    快捷键：<kbd>空格</kbd> 开始 / 暂停 · <kbd>S</kbd> 单步 · <kbd>R</kbd> 随机 · <kbd>C</kbd> 清空
+  </p>
+</div>
+
+<script>
+/* ==========================================================================
+   生命游戏 —— 逻辑
+   --------------------------------------------------------------------------
+   规则：康威生命游戏（B3/S23）
+     死格邻居恰好 3 个 → 复活
+     活格邻居 2 或 3 个 → 存活
+     其余情况 → 死亡
+   边界：环绕（上下左右连通，像球面一样）
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  /* ======================================================================
+     一、配置
+     ====================================================================== */
+  const CELL_MIN = 10;    // 格子最小像素
+  const CELL_MAX = 30;    // 格子最大像素
+  const DENSITY  = 0.28;  // 随机铺满时的存活密度
+
+  /* ======================================================================
+     二、经典图案
+     --------------------------------------------------------------------------
+     '#' 表示活细胞，'.' 表示死细胞；放置时会按该图案裁剪出的边界居中。
+     ====================================================================== */
+  const PRESETS = [
+    {
+      name: '滑翔机',
+      note: '滑翔机会斜着一直飞，是生命游戏里最著名的图案',
+      pattern: [
+        '.#.',
+        '..#',
+        '###'
+      ]
+    },
+    {
+      name: '脉冲星',
+      note: '脉冲星周期为 3，会像心脏一样规律地一张一缩',
+      pattern: [
+        '..###...###..',
+        '.............',
+        '#....#.#....#',
+        '#....#.#....#',
+        '#....#.#....#',
+        '..###...###..',
+        '.............',
+        '..###...###..',
+        '#....#.#....#',
+        '#....#.#....#',
+        '#....#.#....#',
+        '.............',
+        '..###...###..'
+      ]
+    },
+    {
+      name: '轻量飞船',
+      note: '轻量飞船每 4 代前进两格，是移动最快的常见图案之一',
+      pattern: [
+        '.#..#',
+        '#....',
+        '#...#',
+        '####.'
+      ]
+    },
+    {
+      name: '蟾蜍',
+      note: '蟾蜍周期为 2，只有 6 个细胞，却会来回翻转',
+      pattern: [
+        '.###',
+        '###.'
+      ]
+    },
+    {
+      name: '信标',
+      note: '信标周期为 2，会一闪一闪地「呼吸」',
+      pattern: [
+        '##..',
+        '##..',
+        '..##',
+        '..##'
+      ]
+    },
+    {
+      name: '朗肯',
+      note: '朗肯是很稳定的方块群，长期不变，适合当「砖块」用',
+      pattern: [
+        '##.',
+        '##.',
+        '.##',
+        '.##'
+      ]
+    }
+  ];
+
+  /* ======================================================================
+     三、DOM
+     ====================================================================== */
+  const $ = id => document.getElementById(id);
+  const canvas   = $('board');
+  const ctx      = canvas.getContext('2d');
+  const sGen     = $('sGen');
+  const sAlive   = $('sAlive');
+  const sBorn    = $('sBorn');
+  const sDied    = $('sDied');
+  const vSpeed   = $('vSpeed');
+  const vSize    = $('vSize');
+  const rSpeed   = $('rSpeed');
+  const rSize    = $('rSize');
+  const boardTip = $('boardTip');
+  const statusMsg  = $('statusMsg');
+  const presetRow  = $('presetRow');
+  const presetNote = $('presetNote');
+
+  /* ======================================================================
+     四、状态
+     ====================================================================== */
+  const state = {
+    cols: 0,
+    rows: 0,
+    cell: 18,            // 每格像素（画布 CSS 尺寸）
+    grid: null,          // Uint8Array，1 = 活
+    next: null,          // 下一代缓冲
+    age: null,           // 每个活细胞的存活代数，用于出生高亮
+    gen: 0,
+    born: 0,
+    died: 0,
+    running: false,
+    speed: 10,           // 每秒演化代数
+    acc: 0,              // 时间累加器
+    lastTs: 0,
+    raf: null,
+    dpr: 1
+  };
+
+  /* ======================================================================
+     五、尺寸与坐标
+     ====================================================================== */
+
+  /* 按容器宽度和格子大小，算出网格规模并重建数组 */
+  function resizeGrid(keepPattern) {
+    const wrap = canvas.parentNode;
+    /* 棋盘可用宽度 = 容器内宽（减去 padding） */
+    const avail = Math.max(160, wrap.clientWidth - 28);
+    const cell = state.cell;
+
+    state.cols = Math.max(8, Math.floor(avail / cell));
+    state.rows = Math.max(6, Math.round(state.cols * 0.58));   // 略扁，接近 16:9
+
+    const canvasW = state.cols * cell;
+    const canvasH = state.rows * cell;
+
+    /* 物理像素按设备像素比放大，保证线条清晰 */
+    state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width  = Math.round(canvasW * state.dpr);
+    canvas.height = Math.round(canvasH * state.dpr);
+    canvas.style.height = canvasH + 'px';
+    ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+
+    const size = state.cols * state.rows;
+    const oldGrid = state.grid, oldCols = state.__oldCols || 0, oldRows = state.__oldRows || 0;
+
+    state.grid = new Uint8Array(size);
+    state.next = new Uint8Array(size);
+    state.age  = new Uint16Array(size);
+
+    /* 改变格子大小时，尽量把原有图案搬到新的网格中央，避免直接清空 */
+    if (keepPattern && oldGrid && oldCols && oldRows) {
+      const ox = Math.floor((state.cols - oldCols) / 2);
+      const oy = Math.floor((state.rows - oldRows) / 2);
+      for (let y = 0; y < oldRows; y++) {
+        for (let x = 0; x < oldCols; x++) {
+          if (!oldGrid[y * oldCols + x]) { continue; }
+          const nx = x + ox, ny = y + oy;
+          if (nx >= 0 && nx < state.cols && ny >= 0 && ny < state.rows) {
+            state.grid[ny * state.cols + nx] = 1;
+          }
+        }
+      }
+    }
+
+    state.__oldCols = state.cols;
+    state.__oldRows = state.rows;
+
+    draw();
+    updateStats();
+  }
+
+  const idx = (x, y) => y * state.cols + x;
+
+  /* ======================================================================
+     六、绘制
+     ====================================================================== */
+
+  /* 网格底色与细线 */
+  function drawGridLines() {
+    const cell = state.cell;
+    const w = state.cols * cell;
+    const h = state.rows * cell;
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(44, 110, 130, .07)';
+    ctx.lineWidth = 1;
+
+    for (let x = 1; x < state.cols; x++) {
+      ctx.beginPath();
+      ctx.moveTo(x * cell + .5, 0);
+      ctx.lineTo(x * cell + .5, h);
+      ctx.stroke();
+    }
+    for (let y = 1; y < state.rows; y++) {
+      ctx.beginPath();
+      ctx.moveTo(0, y * cell + .5);
+      ctx.lineTo(w, y * cell + .5);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* 单个细胞：新生的用暖黄，存活的用青绿→天蓝渐变 */
+  function drawCell(x, y, isNew) {
+    const cell = state.cell;
+    const pad = Math.max(1, Math.round(cell * 0.09));
+    const px = x * cell + pad;
+    const py = y * cell + pad;
+    const size = cell - pad * 2;
+
+    if (isNew) {
+      ctx.fillStyle = '#ffc93c';
+    } else {
+      /* 按行做一点色相变化，让整片细胞看起来有层次 */
+      const t = state.rows > 1 ? y / (state.rows - 1) : 0;
+      const r = Math.round(52  + (59  - 52)  * t);
+      const g = Math.round(201 + (169 - 201) * t);
+      const b = Math.round(163 + (232 - 163) * t);
+      ctx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+    }
+
+    const radius = Math.max(2, Math.round(cell * 0.26));
+    roundRect(px, py, size, size, radius);
+    ctx.fill();
+  }
+
+  function roundRect(x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.lineTo(x + w - rr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+    ctx.lineTo(x + w, y + h - rr);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+    ctx.lineTo(x + rr, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+    ctx.lineTo(x, y + rr);
+    ctx.quadraticCurveTo(x, y, x + rr, y);
+    ctx.closePath();
+  }
+
+  /* 全量重绘 */
+  function draw() {
+    const w = state.cols * state.cell;
+    const h = state.rows * state.cell;
+
+    ctx.clearRect(0, 0, w, h);
+    drawGridLines();
+
+    for (let y = 0; y < state.rows; y++) {
+      for (let x = 0; x < state.cols; x++) {
+        const i = idx(x, y);
+        if (state.grid[i]) {
+          /* age === 1 表示这一代刚出生 */
+          drawCell(x, y, state.age[i] === 1);
+        }
+      }
+    }
+  }
+
+  /* ======================================================================
+     七、演化（核心规则）
+     ====================================================================== */
+  function step() {
+    const cols = state.cols, rows = state.rows;
+    const grid = state.grid, next = state.next, age = state.age;
+    let born = 0, died = 0, alive = 0;
+
+    for (let y = 0; y < rows; y++) {
+      /* 环绕边界：上一行 / 下一行 */
+      const yUp = (y - 1 + rows) % rows;
+      const yDn = (y + 1) % rows;
+
+      for (let x = 0; x < cols; x++) {
+        const xL = (x - 1 + cols) % cols;
+        const xR = (x + 1) % cols;
+
+        /* 统计 8 个邻居 */
+        let n = 0;
+        n += grid[yUp * cols + xL] + grid[yUp * cols + x] + grid[yUp * cols + xR];
+        n += grid[y    * cols + xL] +                        grid[y    * cols + xR];
+        n += grid[yDn * cols + xL] + grid[yDn * cols + x] + grid[yDn * cols + xR];
+
+        const i = y * cols + x;
+        const wasAlive = grid[i] === 1;
+
+        /* B3/S23 */
+        let willLive = false;
+        if (wasAlive) {
+          willLive = (n === 2 || n === 3);
+        } else {
+          willLive = (n === 3);
+        }
+
+        if (willLive) {
+          next[i] = 1;
+          alive++;
+          if (!wasAlive) {
+            born++;
+            age[i] = 1;                       /* 新生 */
+          } else {
+            age[i] = age[i] ? age[i] + 1 : 2; /* 继续存活，代数 +1 */
+          }
+        } else {
+          next[i] = 0;
+          age[i] = 0;
+          if (wasAlive) { died++; }
+        }
+      }
+    }
+
+    /* 交换缓冲，避免每代都新建数组 */
+    state.grid = next;
+    state.next = grid;
+
+    state.gen++;
+    state.born = born;
+    state.died = died;
+
+    /* 同步界面：alive 刚刚统计过，直接传进去 */
+    updateStats(alive);
+    draw();
+
+    return { born: born, died: died, alive: alive };
+  }
+
+  /* ======================================================================
+     八、界面刷新
+     ====================================================================== */
+  function countAlive() {
+    let n = 0;
+    for (let i = 0; i < state.grid.length; i++) { n += state.grid[i]; }
+    return n;
+  }
+
+  /* 刷新状态栏。alive 可选：演化时已经算过了，直接传进来避免重复遍历 */
+  function updateStats(aliveCount) {
+    const alive = (typeof aliveCount === 'number') ? aliveCount : countAlive();
+
+    sGen.textContent   = state.gen;
+    sAlive.textContent = alive;
+    sBorn.textContent  = state.born;
+    sDied.textContent  = state.died;
+    return alive;
+  }
+
+  function setMsg(text) { statusMsg.textContent = text; }
+
+  function showTip(show) {
+    boardTip.classList.toggle('show', !!show);
+  }
+
+  /* ======================================================================
+     九、运行控制
+     ====================================================================== */
+  function loop(ts) {
+    if (!state.running) { return; }
+
+    if (!state.lastTs) { state.lastTs = ts; }
+    const dt = Math.min(ts - state.lastTs, 250);   /* 卡顿时限制步进量 */
+    state.lastTs = ts;
+
+    state.acc += dt;
+    const interval = 1000 / state.speed;
+
+    /* 一帧内最多演化若干代，避免速度拉满时卡死 */
+    let guard = 0;
+    while (state.acc >= interval && guard < 8) {
+      state.acc -= interval;
+      const r = step();
+      guard++;
+
+      /* 全部死光就自动停下，免得空转 */
+      if (r.alive === 0) {
+        stop();
+        setMsg('💀 细胞全部消亡了，棋盘已空');
+        showTip(true);
+        boardTip.textContent = '👆 画点新的细胞，再来一次';
+        return;
+      }
+    }
+
+    state.raf = requestAnimationFrame(loop);
+  }
+
+  function start() {
+    if (state.running) { return; }
+
+    /* 空棋盘上直接开始没有意义，先随机铺一点 */
+    if (countAlive() === 0) {
+      randomFill();
+      setMsg('🎲 棋盘原本是空的，先随机铺了一层');
+    } else {
+      setMsg('🧬 演化中…看它们怎么自己长');
+    }
+
+    state.running = true;
+    state.lastTs = 0;
+    state.acc = 0;
+    $('btnPlay').textContent = '⏸ 暂停';
+    $('btnPlay').classList.remove('green');
+    $('btnPlay').classList.add('sun');
+    showTip(false);
+    state.raf = requestAnimationFrame(loop);
+  }
+
+  function stop() {
+    state.running = false;
+    if (state.raf) { cancelAnimationFrame(state.raf); state.raf = null; }
+    $('btnPlay').textContent = '▶ 开始演化';
+    $('btnPlay').classList.add('green');
+    $('btnPlay').classList.remove('sun');
+  }
+
+  function toggle() {
+    if (state.running) {
+      stop();
+      setMsg('⏸ 已暂停在第 ' + state.gen + ' 代');
+    } else {
+      start();
+    }
+  }
+
+  /* 单步：只在暂停时可用 */
+  function stepOnce() {
+    if (state.running) { stop(); }
+    const r = step();
+    if (r.alive === 0) {
+      setMsg('💀 这一步之后细胞全没了（第 ' + state.gen + ' 代）');
+      showTip(true);
+      boardTip.textContent = '👆 画点新的细胞，再来一次';
+    } else {
+      setMsg('⏭ 第 ' + state.gen + ' 代：新生 ' + r.born + ' · 消亡 ' + r.died);
+      showTip(false);
+    }
+  }
+
+  /* ======================================================================
+     十、编辑棋盘
+     ====================================================================== */
+  function clearBoard() {
+    stop();
+    state.grid.fill(0);
+    state.next.fill(0);
+    state.age.fill(0);
+    state.gen = 0;
+    state.born = 0;
+    state.died = 0;
+    updateStats(0);
+    draw();
+    setMsg('🧹 已清空，棋盘是空的');
+    showTip(true);
+    boardTip.textContent = '👆 先点几个格子，或者直接「随机铺满」';
+    /* 清空后取消预设的选中态 */
+    Array.prototype.forEach.call(presetRow.children, b => b.classList.remove('active'));
+  }
+
+  function randomFill() {
+    stop();
+    const density = DENSITY;
+    for (let i = 0; i < state.grid.length; i++) {
+      state.grid[i] = Math.random() < density ? 1 : 0;
+    }
+    /* 随机铺的细胞都算"活着"，给个中等 age，避免整屏都是新生色 */
+    for (let i = 0; i < state.age.length; i++) {
+      state.age[i] = state.grid[i] ? 3 : 0;
+    }
+    state.gen = 0;
+    state.born = 0;
+    state.died = 0;
+    const alive = countAlive();
+    updateStats(alive);
+    draw();
+    setMsg('🎲 随机铺了 ' + alive + ' 个细胞，点「开始演化」吧');
+    showTip(false);
+    Array.prototype.forEach.call(presetRow.children, b => b.classList.remove('active'));
+  }
+
+  /* 把图案放到棋盘中央 */
+  function placePattern(preset) {
+    stop();
+
+    const pat = preset.pattern;
+    const ph = pat.length;
+    const pw = Math.max.apply(null, pat.map(r => r.length));
+
+    if (pw > state.cols || ph > state.rows) {
+      setMsg('⚠️ 棋盘（' + state.cols + '×' + state.rows + '）放不下这个图案');
+      return;
+    }
+
+    state.grid.fill(0);
+    state.next.fill(0);
+    state.age.fill(0);
+
+    const ox = Math.floor((state.cols - pw) / 2);
+    const oy = Math.floor((state.rows - ph) / 2);
+
+    let placed = 0;
+    for (let y = 0; y < ph; y++) {
+      const row = pat[y];
+      for (let x = 0; x < row.length; x++) {
+        if (row.charAt(x) === '#') {
+          state.grid[idx(ox + x, oy + y)] = 1;
+          state.age[idx(ox + x, oy + y)] = 3;
+          placed++;
+        }
+      }
+    }
+
+    state.gen = 0;
+    state.born = 0;
+    state.died = 0;
+    updateStats(placed);
+    draw();
+    setMsg('🧩 已放置「' + preset.name + '」（' + placed + ' 个细胞），点「开始演化」');
+    presetNote.textContent = preset.note;
+    showTip(false);
+
+    Array.prototype.forEach.call(presetRow.children, function (b) {
+      b.classList.toggle('active', b.dataset.name === preset.name);
+    });
+  }
+
+  /* ======================================================================
+     十一、鼠标 / 触摸绘制
+     ====================================================================== */
+
+  /* 把指针位置换算成格子坐标 */
+  function cellFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / rect.width  * state.cols);
+    const y = Math.floor((e.clientY - rect.top)  / rect.height * state.rows);
+    if (x < 0 || x >= state.cols || y < 0 || y >= state.rows) { return null; }
+    return { x: x, y: y };
+  }
+
+  let painting = false;
+  let paintValue = 1;      /* 按下时决定这一笔是画还是擦 */
+  let painted = 0;
+
+  function applyPaint(c) {
+    if (!c) { return; }
+    const i = idx(c.x, c.y);
+    if (state.grid[i] === paintValue) { return; }
+    state.grid[i] = paintValue;
+    state.age[i] = paintValue ? 3 : 0;
+    painted++;
+  }
+
+  canvas.addEventListener('pointerdown', function (e) {
+    const c = cellFromEvent(e);
+    if (!c) { return; }
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+
+    /* 暂停时才允许编辑，避免和演化抢棋盘 */
+    if (state.running) { stop(); setMsg('⏸ 绘制时已自动暂停'); }
+
+    /* 点已活的格子 = 擦除；点空格 = 画上 */
+    paintValue = state.grid[idx(c.x, c.y)] ? 0 : 1;
+    painting = true;
+    painted = 0;
+    applyPaint(c);
+    draw();
+    showTip(false);
+  });
+
+  canvas.addEventListener('pointermove', function (e) {
+    if (!painting) { return; }
+    e.preventDefault();
+    const c = cellFromEvent(e);
+    if (!c) { return; }
+    const before = painted;
+    applyPaint(c);
+    if (painted !== before) { draw(); }
+  });
+
+  function endPaint() {
+    if (!painting) { return; }
+    painting = false;
+    const alive = countAlive();
+    updateStats(alive);
+    setMsg(paintValue ? '🖌 画上了 ' + painted + ' 个细胞（共 ' + alive + ' 个）'
+                      : '🧽 擦掉了 ' + painted + ' 个细胞（共 ' + alive + ' 个）');
+  }
+
+  canvas.addEventListener('pointerup', endPaint);
+  canvas.addEventListener('pointercancel', endPaint);
+  canvas.addEventListener('pointerleave', function () { if (painting) { endPaint(); } });
+
+  /* ======================================================================
+     十二、事件绑定
+     ====================================================================== */
+  $('btnPlay').addEventListener('click', toggle);
+  $('btnStep').addEventListener('click', stepOnce);
+  $('btnRandom').addEventListener('click', function () { randomFill(); });
+  $('btnClear').addEventListener('click', clearBoard);
+
+  /* 速度 */
+  rSpeed.addEventListener('input', function () {
+    state.speed = parseInt(rSpeed.value, 10);
+    vSpeed.textContent = state.speed;
+    state.acc = 0;
+  });
+
+  /* 格子大小：重建网格并保留原有图案 */
+  rSize.addEventListener('input', function () {
+    state.cell = parseInt(rSize.value, 10);
+    vSize.textContent = state.cell;
+    resizeGrid(true);
+    setMsg('🔍 格子大小已调整为 ' + state.cell + ' 像素');
+  });
+
+  /* 生成预设按钮 */
+  PRESETS.forEach(function (p) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tool';
+    b.textContent = p.name;
+    b.dataset.name = p.name;
+    b.addEventListener('click', function () { placePattern(p); });
+    presetRow.appendChild(b);
+  });
+
+  /* 窗口尺寸变化：重算网格，尽量保住图案 */
+  let resizeTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { resizeGrid(true); }, 180);
+  });
+
+  /* 快捷键 */
+  document.addEventListener('keydown', function (e) {
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') { return; }
+
+    if (e.code === 'Space')      { e.preventDefault(); toggle(); }
+    else if (e.key === 's' || e.key === 'S') { e.preventDefault(); stepOnce(); }
+    else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); randomFill(); }
+    else if (e.key === 'c' || e.key === 'C') { e.preventDefault(); clearBoard(); }
+  });
+
+  /* 页面切到后台时暂停，避免回来时瞬间跳很多代 */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && state.running) {
+      stop();
+      setMsg('⏸ 页面切走了，已自动暂停在第 ' + state.gen + ' 代');
+    }
+  });
+
+  /* 与另一个游戏共处一页时（合并版 games.html）会派发 panechange：
+     切走时先暂停，别在后台空转。网格重建由切换脚本调用 __lfRefit 完成 */
+  document.addEventListener('panechange', function (e) {
+    /* 单独打开本文件时没有 .game-pane，这套逻辑不适用 */
+    const ownPane = document.querySelector('.game-pane');
+    if (!ownPane) { return; }
+
+    const target = e && e.detail ? e.detail.target : null;
+    if (ownPane.id !== target && state.running) {
+      stop();
+      setMsg('⏸ 已暂停（切到了另一个游戏）');
+    }
+  });
+
+  /* ----------------------------------------------------------------------
+     十三、初始化
+     ---------------------------------------------------------------------- */
+  state.cell  = parseInt(rSize.value, 10);
+  state.speed = parseInt(rSpeed.value, 10);
+  vSize.textContent  = state.cell;
+  vSpeed.textContent = state.speed;
+
+  /* 建立网格 */
+  resizeGrid(false);
+
+  /* 开局放一架滑翔机，让页面一进来就有东西可看 */
+  placePattern(PRESETS[0]);
+  setMsg('✨ 已放好一架滑翔机，点「开始演化」看它飞');
+
+  /* 合并版 games.html 里，本游戏初始可能是隐藏的（另一个页签在前），
+     那时量不到容器宽度、网格会算得很小。
+     切换页签后由切换脚本调用这个钩子重算一次即可 ——
+     不必在这里塞一堆观察器。 */
+  window.__lfRefit = function () {
+    resizeGrid(true);
+  };
+
+  console.log('%c生命游戏 已加载 ✓', 'color:#1fa586;font-weight:bold');
+  console.log('规则 B3/S23，边界环绕，网格 ' + state.cols + '×' + state.rows);
+
+})();
+</script>
+</body>
+</html>

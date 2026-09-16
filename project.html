@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>项目展示 | 姚子健 · 华中科技大学</title>
+  <meta name="description" content="姚子健的项目展示页面，内容即将上线。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 上部共同区域（与其他页面一致） -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="name">姚子健</span>
+        <span class="school">华中科技大学</span>
+      </div>
+      <div class="header-right">
+        <img class="logo" src="images/hust_logo.png" data-fallback="hust_logo.png"
+             alt="华中科技大学校徽">
+        <button class="music-btn" id="musicBtn" type="button"
+                aria-pressed="false" aria-label="播放背景音乐">
+          <span class="ico" aria-hidden="true">♪</span>
+          <span class="txt">背景音乐</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <audio id="bgMusic" src="little_wish.mp3" autoplay loop preload="auto"></audio>
+
+  <!-- 中部跳转选单：当前页为“项目展示” -->
+  <nav class="site-nav" aria-label="主导航">
+    <div class="nav-inner">
+      <a class="nav-link" href="index.html">首页</a>
+      <a class="nav-link" href="goal.html">专业目标</a>
+      <a class="nav-link" href="plan.html">四年规划</a>
+      <a class="nav-link active" href="project.html">项目展示</a>
+      <a class="nav-link" href="university.html">我的大学</a>
+    </div>
+  </nav>
+
+  <!-- ==================== 下部：项目展示（暂为占位） ==================== -->
+  <main>
+    <div class="wrap">
+
+      <div class="page-head">
+        <span class="kicker">Projects</span>
+        <h1>项目展示</h1>
+        <p>两个可以直接玩的小游戏，以及一些课程练习作品</p>
+      </div>
+
+      <!-- 已完成的练习作品：两个游戏都直接嵌在页面里，可以就地玩 -->
+      <section class="card">
+        <h2>练习作品</h2>
+
+        <div class="mini-project">
+          <div class="mini-icon" aria-hidden="true">🔤</div>
+          <div class="mini-body">
+            <h3>猜词消消乐</h3>
+            <p>
+              把英文单词和中文释义配对消除的小游戏。四档难度、连击倍率、
+              速度奖励，还可以自己往里加单词。用 HTML5 + CSS3 + 原生 JavaScript
+              写成，单文件即可运行。
+            </p>
+          </div>
+        </div>
+
+        <!-- 游戏直接用 iframe 嵌进来，可以就地玩 -->
+        <div class="game-embed">
+          <div class="embed-head">
+            <h3>🔤 猜词消消乐 · 在线试玩</h3>
+            <a class="embed-open" href="guess-game.html" target="_blank" rel="noopener">在新窗口打开 ↗</a>
+          </div>
+          <iframe class="game-frame"
+                  src="guess-game.html"
+                  title="猜词消消乐"
+                  loading="lazy"></iframe>
+        </div>
+
+        <div class="mini-project mini-project-next">
+          <div class="mini-icon" aria-hidden="true">🧫</div>
+          <div class="mini-body">
+            <h3>生命游戏</h3>
+            <p>
+              康威生命游戏。点格子养细胞，然后看它按「生、死、繁殖」三条规则
+              自己演化——会长出滑翔机、脉冲星这些会移动会振荡的图案。
+              可以随时调速、改格子大小，或直接放一个经典图案上去。
+            </p>
+          </div>
+        </div>
+
+        <div class="game-embed">
+          <div class="embed-head">
+            <h3>🧫 生命游戏 · 在线试玩</h3>
+            <a class="embed-open" href="life-game.html" target="_blank" rel="noopener">在新窗口打开 ↗</a>
+          </div>
+          <iframe class="game-frame short"
+                  src="life-game.html"
+                  title="生命游戏"
+                  loading="lazy"></iframe>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p><strong>姚子健</strong> · 华中科技大学</p>
+    <p>个人网站 · 使用 HTML5 与 CSS3 构建</p>
+  </footer>
+
+  <div class="music-tip" id="musicTip" role="status">
+    <span class="tip-text">🎵 浏览器已阻止背景音乐自动播放，点击右侧按钮开始播放</span>
+    <button id="musicTipBtn" type="button">点击播放</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

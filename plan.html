@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>四年规划 | 姚子健 · 华中科技大学</title>
+  <meta name="description" content="姚子健的大学四年规划 —— 从打基础到项目落地，逐年推进。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 上部共同区域（与其他页面一致） -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="name">姚子健</span>
+        <span class="school">华中科技大学</span>
+      </div>
+      <div class="header-right">
+        <img class="logo" src="images/hust_logo.png" data-fallback="hust_logo.png"
+             alt="华中科技大学校徽">
+        <button class="music-btn" id="musicBtn" type="button"
+                aria-pressed="false" aria-label="播放背景音乐">
+          <span class="ico" aria-hidden="true">♪</span>
+          <span class="txt">背景音乐</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <audio id="bgMusic" src="little_wish.mp3" autoplay loop preload="auto"></audio>
+
+  <!-- 中部跳转选单：当前页为“四年规划” -->
+  <nav class="site-nav" aria-label="主导航">
+    <div class="nav-inner">
+      <a class="nav-link" href="index.html">首页</a>
+      <a class="nav-link" href="goal.html">专业目标</a>
+      <a class="nav-link active" href="plan.html">四年规划</a>
+      <a class="nav-link" href="project.html">项目展示</a>
+      <a class="nav-link" href="university.html">我的大学</a>
+    </div>
+  </nav>
+
+  <!-- ==================== 下部：四年规划 ==================== -->
+  <main>
+    <div class="wrap">
+
+      <div class="page-head">
+        <span class="kicker">Plan</span>
+        <h1>四年规划</h1>
+        <p>把"想做很多事"拆成四年里每年能完成的具体动作</p>
+      </div>
+
+      <div class="timeline">
+
+        <!-- ---------- 大一 ---------- -->
+        <section class="tl-item">
+          <div class="tl-card">
+            <span class="year">大一 · FRESHMAN</span>
+            <h2>打牢基础，把工具摸熟</h2>
+            <p class="goal-line">目标：确认自己真的喜欢这个专业，而不是"听起来不错"</p>
+            <ul class="checks">
+              <li>学好高等数学、线性代数、工程制图等基础课，绩点保持在专业前 30%</li>
+              <li>系统练熟 SolidWorks：能独立完成中等复杂度的零件建模与装配</li>
+              <li>入门 C++，把语法、指针、面向对象的基本概念过一遍，不只是应付考试</li>
+              <li>用 Arduino 做完至少两个小项目，理解"代码如何控制硬件"</li>
+              <li>加入一个科技类社团或实验室，先跟着学长学姐做点杂活，感受真实项目的节奏</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- ---------- 大二 ---------- -->
+        <section class="tl-item">
+          <div class="tl-card">
+            <span class="year">大二 · SOPHOMORE</span>
+            <h2>补齐短板，进入嵌入式</h2>
+            <p class="goal-line">目标：从"会用工具"过渡到"理解原理"</p>
+            <ul class="checks">
+              <li>学习理论力学、材料力学、机械原理，把建模时的直觉换成能算的依据</li>
+              <li>从 Arduino 转向 STM32：掌握寄存器与 HAL 库、中断、定时器、常用通信接口</li>
+              <li><strong>对 C++ 进一步深入学习</strong>：模板、STL 容器与算法、内存管理、面向对象设计</li>
+              <li><strong>对 Python 进一步深入学习</strong>：面向对象、常用标准库、数据处理与自动化脚本</li>
+              <li>参加一次校内机械设计或电子设计竞赛，哪怕只是参与其中一部分</li>
+              <li>通过英语四级，开始能读英文数据手册（datasheet）</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- ---------- 大三 ---------- -->
+        <section class="tl-item">
+          <div class="tl-card">
+            <span class="year">大三 · JUNIOR</span>
+            <h2>做出作品，确定方向</h2>
+            <p class="goal-line">目标：手上有一个能拿出去讲、经得起追问的项目</p>
+            <ul class="checks">
+              <li>加入实验室参与实际课题，或组队做一个完整的小型机电系统</li>
+              <li>打通"结构 + 电路 + 程序"：从需求、建模、画板、烧录到联调自己走一遍</li>
+              <li><strong>对 Java 进一步深入学习</strong>：集合框架、多线程、常用工程实践</li>
+              <li>把三门语言的定位理清楚：C++ 做性能与底层、Python 做算法与工具、Java 做工程与后端</li>
+              <li>把项目整理成技术文档和演示视频，作为简历和作品集的核心内容</li>
+              <li>明确毕业去向：保研 / 考研 / 就业，并据此安排这一年剩下的时间</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- ---------- 大四 ---------- -->
+        <section class="tl-item">
+          <div class="tl-card">
+            <span class="year">大四 · SENIOR</span>
+            <h2>收口，把路铺到下一站</h2>
+            <p class="goal-line">目标：毕业设计做成一件自己认可的作品，而不是一次应付</p>
+            <ul class="checks">
+              <li>认真完成毕业设计，选题尽量与自己感兴趣的方向一致，并做出可演示的实物或系统</li>
+              <li>补强专业方向课，把四年里零散的知识点串成体系</li>
+              <li>继续打磨三年前学的那三门语言，把"能用"变成"能独立解决问题"</li>
+              <li>完成实习或求职准备：简历、项目答辩、技术面试的系统练习</li>
+              <li>把整个网站更新一遍，让它真实记录这四年的变化</li>
+            </ul>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p><strong>姚子健</strong> · 华中科技大学</p>
+    <p>个人网站 · 使用 HTML5 与 CSS3 构建</p>
+  </footer>
+
+  <div class="music-tip" id="musicTip" role="status">
+    <span class="tip-text">🎵 浏览器已阻止背景音乐自动播放，点击右侧按钮开始播放</span>
+    <button id="musicTipBtn" type="button">点击播放</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

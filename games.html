@@ -1,0 +1,3204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小游戏合集 · 猜词消消乐 + 生命游戏</title>
+<meta name="description" content="一个页面装两个小游戏：中英配对消消乐，以及康威生命游戏">
+<!--
+  本文件由 tools/build-combined.js 自动生成，请勿直接修改。
+  要改内容，请改 guess-game.html / life-game.html，然后重新运行：
+      node tools/build-combined.js
+-->
+<style>
+/* ==========================================================================
+   共享基础样式（两个游戏通用）
+   ========================================================================== */
+:root {
+  --mint:        #34c9a3;
+  --mint-dark:   #1fa586;
+  --mint-pale:   #e4f8f2;
+  --sky:         #3ba9e8;
+  --sky-dark:    #2b8cc4;
+  --sky-pale:    #e3f3fd;
+  --sun:         #ffc93c;
+  --coral:       #ff7a6b;
+  --grape:       #9d7bea;
+  --ink:         #2c3e46;
+  --ink-2:       #5c7078;
+  --ink-3:       #92a5ad;
+  --line:        #e2eef0;
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 26px;
+  --r-pill: 999px;
+  --shadow-sm: 0 2px 6px rgba(44, 110, 130, .08);
+  --shadow-md: 0 6px 18px rgba(44, 110, 130, .12);
+  --shadow-lg: 0 16px 40px rgba(44, 110, 130, .16);
+  --font: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+          "Microsoft YaHei", Roboto, "Helvetica Neue", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 40px;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(52, 201, 163, .20), transparent 45%),
+    radial-gradient(circle at 88% 88%, rgba(59, 169, 232, .20), transparent 45%),
+    linear-gradient(160deg, #f2fdfa 0%, #eef9fd 55%, #f4fbff 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+/* --- 游戏切换页签 --- */
+.switcher {
+  width: min(100%, 900px);
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 auto 18px;
+  flex-wrap: wrap;
+}
+
+.switcher button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 26px;
+
+  border: 2px solid #fff;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .72);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--ink-2);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform .15s ease, box-shadow .2s ease,
+              background .2s ease, color .2s ease;
+}
+
+.switcher button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  color: var(--mint-dark);
+}
+
+.switcher button.active {
+  background: linear-gradient(180deg, #47d6b0, var(--mint));
+  border-color: #fff;
+  color: #fff;
+  box-shadow: 0 4px 0 var(--mint-dark), var(--shadow-md);
+}
+
+/* 两个游戏容器：同一时刻只显示一个。
+   注意：游戏外框（.gm-app / .lf-app）只有 margin:0 auto 而没有 max-width，
+   外层如果比它宽，它就会靠左 —— 所以这里让每个面板自己收窄并居中，
+   保证游戏卡片、页签、页脚三者的中线对齐。 */
+.game-pane { display: none; width: 100%; margin: 0 auto; }
+.game-pane.active { display: block; }
+#pane-gm { max-width: 880px; }
+#pane-lf { max-width: 900px; }
+
+/* --- 页脚 --- */
+.page-footer {
+  width: min(100%, 900px);
+  margin: 22px auto 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.9;
+}
+
+.page-footer b { color: var(--mint-dark); }
+
+/* ---------------- 猜词消消乐 ---------------- */
+/* ==========================================================================
+   猜词消消乐 —— 样式表
+   风格：明快清爽。薄荷绿 → 天空蓝的浅色渐变，糖果质感卡片，圆润饱满。
+   ========================================================================== */
+
+:root {
+  /* 主色：清新的青绿 */
+  --mint:        #34c9a3;
+  --mint-dark:   #1fa586;
+  --mint-pale:   #e4f8f2;
+
+  /* 辅色：天空蓝（用于英文卡片） */
+  --sky:         #3ba9e8;
+  --sky-dark:    #2b8cc4;
+  --sky-pale:    #e3f3fd;
+
+  /* 点缀色 */
+  --sun:         #ffc93c;   /* 选中 / 连击 */
+  --coral:       #ff7a6b;   /* 配对错误 */
+  --grape:       #9d7bea;   /* 提示 */
+
+  /* 中性色 */
+  --ink:         #2c3e46;
+  --ink-2:       #5c7078;
+  --ink-3:       #92a5ad;
+  --line:        #e2eef0;
+  --surface:     #ffffff;
+
+  /* 圆角与阴影（浅色 UI 用柔和的彩色投影，不用纯黑） */
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 26px;
+  --r-pill: 999px;
+  --shadow-sm: 0 2px 6px rgba(44, 110, 130, .08);
+  --shadow-md: 0 6px 18px rgba(44, 110, 130, .12);
+  --shadow-lg: 0 16px 40px rgba(44, 110, 130, .16);
+
+  --font: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+          "Microsoft YaHei", Roboto, "Helvetica Neue", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px 16px 40px;
+
+  /* 明快的底色：薄荷 → 天空蓝，叠加两团柔光 */
+  background:
+    radial-gradient(circle at 12% 10%, rgba(52, 201, 163, .20), transparent 45%),
+    radial-gradient(circle at 88% 88%, rgba(59, 169, 232, .20), transparent 45%),
+    linear-gradient(160deg, #f2fdfa 0%, #eef9fd 55%, #f4fbff 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+/* 卡片交互元素禁止选中文字，避免连点选中 */
+.gm-card, .gm-pill, .gm-btn, .gm-stat {
+  user-select: none;
+}
+
+/* ==========================================================================
+   主容器
+   ========================================================================== */
+.gm-app {
+  width: min(100%, 880px);
+  background: rgba(255, 255, 255, .78);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 26px 26px 22px;
+}
+
+/* ==========================================================================
+   标题区
+   ========================================================================== */
+.gm-head {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.gm-head h1 {
+  font-size: clamp(22px, 3.4vw, 30px);
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gm-head h1 .gm-em {
+  font-size: 1.05em;
+}
+
+.gm-head .gm-sub {
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  letter-spacing: .5px;
+}
+
+/* 顶部装饰性小圆点，增加活泼感 */
+.gm-head .gm-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.gm-head .gm-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.gm-head .gm-dots i:nth-child(1) { background: var(--mint); }
+.gm-head .gm-dots i:nth-child(2) { background: var(--sky); }
+.gm-head .gm-dots i:nth-child(3) { background: var(--sun); }
+.gm-head .gm-dots i:nth-child(4) { background: var(--coral); }
+.gm-head .gm-dots i:nth-child(5) { background: var(--grape); }
+
+/* ==========================================================================
+   难度选择
+   ========================================================================== */
+.gm-difficulty {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.gm-diff-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  cursor: pointer;
+  transition: transform .15s ease, border-color .2s ease,
+              background .2s ease, box-shadow .2s ease, color .2s ease;
+}
+
+.gm-diff-pill:hover {
+  border-color: var(--mint);
+  color: var(--mint-dark);
+  transform: translateY(-2px);
+}
+
+/* 选中态：实心青绿 + 立体投影 */
+.gm-diff-pill.gm-active {
+  background: linear-gradient(180deg, #47d6b0, var(--mint));
+  border-color: var(--mint-dark);
+  color: #fff;
+  box-shadow: 0 4px 0 var(--mint-dark), var(--shadow-sm);
+  transform: translateY(0);
+}
+
+.gm-diff-pill.gm-active:hover {
+  transform: translateY(-1px);
+}
+
+.gm-diff-pill .gm-n {
+  font-size: 12.5px;
+  opacity: .8;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   按钮
+   ========================================================================== */
+.gm-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.gm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+
+  border: none;
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, #55b6ea, var(--sky));
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--sky-dark), var(--shadow-sm);
+  transition: transform .1s ease, box-shadow .1s ease, opacity .2s ease;
+}
+
+.gm-btn:hover   { transform: translateY(-1px); box-shadow: 0 5px 0 var(--sky-dark), var(--shadow-md); }
+.gm-btn:gm-active  { transform: translateY(3px);  box-shadow: 0 1px 0 var(--sky-dark); }
+
+.gm-btn.gm-green {
+  background: linear-gradient(180deg, #47d6b0, var(--mint));
+  box-shadow: 0 4px 0 var(--mint-dark), var(--shadow-sm);
+}
+.gm-btn.gm-green:hover  { box-shadow: 0 5px 0 var(--mint-dark), var(--shadow-md); }
+.gm-btn.gm-green:gm-active { box-shadow: 0 1px 0 var(--mint-dark); }
+
+.gm-btn.gm-sun {
+  background: linear-gradient(180deg, #ffd76b, var(--sun));
+  color: #7a5600;
+  box-shadow: 0 4px 0 #d9a017, var(--shadow-sm);
+}
+.gm-btn.gm-sun:hover  { box-shadow: 0 5px 0 #d9a017, var(--shadow-md); }
+.gm-btn.gm-sun:gm-active { box-shadow: 0 1px 0 #d9a017; }
+
+.gm-btn.gm-ghost {
+  background: #fff;
+  color: var(--ink-2);
+  border: 2px solid var(--line);
+  box-shadow: 0 3px 0 var(--line);
+}
+.gm-btn.gm-ghost:hover  { border-color: var(--mint); color: var(--mint-dark); box-shadow: 0 4px 0 var(--line); }
+.gm-btn.gm-ghost:gm-active { box-shadow: 0 1px 0 var(--line); }
+
+.gm-btn:disabled {
+  opacity: .45;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   状态栏
+   ========================================================================== */
+.gm-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.gm-stat {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px 8px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.gm-stat .gm-k {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  letter-spacing: 1px;
+}
+
+.gm-stat .gm-v {
+  font-size: clamp(18px, 2.6vw, 24px);
+  font-weight: 800;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.gm-stat .gm-v.gm-score { color: var(--mint-dark); }
+.gm-stat .gm-v.gm-combo { color: #e0a100; }
+.gm-stat .gm-v.gm-left  { color: var(--sky-dark); }
+.gm-stat .gm-v.gm-time  { color: var(--ink); }
+
+/* 连击达到 2 以上时，数字弹一下 */
+.gm-stat .gm-v.gm-combo.gm-hot {
+  animation: gm-comboPulse .5s ease;
+}
+
+@keyframes gm-comboPulse {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+
+/* ==========================================================================
+   游戏棋盘
+   ========================================================================== */
+.gm-board-wrap {
+  background: rgba(255, 255, 255, .66);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  box-shadow: inset 0 2px 10px rgba(44, 110, 130, .05);
+}
+
+/* 图例：区分英文卡与中文卡 */
+.gm-legend {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.gm-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gm-legend i {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.gm-legend i.gm-en { background: var(--sky); }
+.gm-legend i.gm-zh { background: var(--mint); }
+
+.gm-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+/* ---------- 卡片 ---------- */
+.gm-card {
+  position: relative;
+  aspect-ratio: 1 / 1;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+
+  padding: 6px;
+  border: 2px solid transparent;
+  border-radius: var(--r-md);
+
+  background: #fff;
+  color: var(--ink);
+  text-align: center;
+  word-break: break-word;
+  cursor: pointer;
+
+  box-shadow: 0 3px 0 rgba(44, 110, 130, .12), var(--shadow-sm);
+  transition: transform .12s ease, box-shadow .12s ease,
+              border-color .15s ease, background .15s ease, opacity .3s ease;
+}
+
+/* 顶部的彩色小条：蓝色 = 英文，绿色 = 中文，一眼区分
+   注意：用 gm-left/right + margin 居中，不用 transform ——
+   卡片自身有 transform，用 transform 居中容易受其影响 */
+.gm-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  gm-left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: 34%;
+  height: 4px;
+  border-radius: 0 0 4px 4px;
+}
+
+.gm-card.gm-en::before { background: var(--sky); }
+.gm-card.gm-zh::before { background: var(--mint); }
+
+.gm-card .gm-txt {
+  font-size: clamp(13px, 1.7vw, 17px);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+/* 英文卡的字号略小，因为单词通常更长 */
+.gm-card.gm-en .gm-txt {
+  font-size: clamp(12px, 1.6vw, 16px);
+  letter-spacing: .3px;
+}
+
+.gm-card .gm-tag {
+  font-size: 10px;
+  letter-spacing: 1px;
+  font-weight: 600;
+  opacity: .45;
+}
+
+.gm-card.gm-en .gm-tag { color: var(--sky-dark); }
+.gm-card.gm-zh .gm-tag { color: var(--mint-dark); }
+
+.gm-card:hover:not(.gm-done) {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 0 rgba(44, 110, 130, .12), var(--shadow-md);
+}
+
+.gm-card:gm-active:not(.gm-done) {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 rgba(44, 110, 130, .12);
+}
+
+/* 选中态：暖黄高亮，明显但不刺眼 */
+.gm-card.gm-selected {
+  background: linear-gradient(180deg, #fff6d9, #ffedb0);
+  border-color: var(--sun);
+  box-shadow: 0 0 0 3px rgba(255, 201, 60, .35), 0 5px 0 #d9a017;
+  transform: translateY(-3px);
+  color: #6b4a00;
+}
+
+/* 配对成功 */
+.gm-card.gm-ok {
+  background: linear-gradient(180deg, #d8f7ec, #b6f0dd);
+  border-color: var(--mint);
+  animation: gm-pop .32s ease;
+}
+
+/* 配对失败 */
+.gm-card.gm-bad {
+  background: linear-gradient(180deg, #ffe4e0, #ffcfc7);
+  border-color: var(--coral);
+  animation: gm-shake .36s ease;
+}
+
+/* 已消除：淡出并留下凹槽，网格不塌陷 */
+.gm-card.gm-done {
+  opacity: .28;
+  background: #f2f7f9;
+  border-color: #e8f0f3;
+  box-shadow: none;
+  cursor: default;
+  pointer-events: none;
+  transform: scale(.92);
+}
+
+.gm-card.gm-done .gm-txt,
+.gm-card.gm-done .gm-tag {
+  opacity: 0;
+}
+
+@keyframes gm-pop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes gm-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+
+/* 棋盘内的信息块（未开始 / 已退出） */
+.gm-board-info {
+  grid-column: 1 / -1;
+  padding: 46px 18px;
+  text-align: center;
+  border-radius: var(--r-lg);
+  background: linear-gradient(160deg, var(--mint-pale), var(--sky-pale));
+  border: 2px dashed #bfe6de;
+}
+
+.gm-board-info .gm-big {
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.gm-board-info .gm-t {
+  font-size: clamp(16px, 2.2vw, 19px);
+  font-weight: 700;
+  color: var(--mint-dark);
+  letter-spacing: 1px;
+}
+
+.gm-board-info .gm-d {
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+   底部状态条
+   ========================================================================== */
+.gm-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 11px 18px;
+
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-sm);
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.gm-status .gm-msg {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.gm-status .gm-chip {
+  background: var(--mint-pale);
+  color: var(--mint-dark);
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: var(--r-pill);
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   浮动得分提示
+   ========================================================================== */
+.gm-float {
+  position: fixed;
+  z-index: 90;
+  pointer-events: none;
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--mint-dark);
+  text-shadow: 0 2px 10px rgba(255, 255, 255, .95);
+  animation: gm-floatUp .95s ease-out forwards;
+}
+
+@keyframes gm-floatUp {
+  0%   { opacity: 1; transform: translate(-50%, 0) scale(.7); }
+  30%  { transform: translate(-50%, -18px) scale(1.18); }
+  100% { opacity: 0; transform: translate(-50%, -62px) scale(1); }
+}
+
+/* ==========================================================================
+   连击横幅
+   ========================================================================== */
+.gm-banner {
+  position: fixed;
+  gm-left: 50%;
+  top: 24%;
+  z-index: 95;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.6);
+  font-size: clamp(26px, 5vw, 44px);
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--sun);
+  text-shadow: 0 3px 0 #d9a017, 0 10px 26px rgba(255, 201, 60, .55);
+}
+
+.gm-banner.gm-show {
+  animation: gm-bannerPop .85s ease-out;
+}
+
+@keyframes gm-bannerPop {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.55); }
+  30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  70%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -92%) scale(.95); }
+}
+
+/* ==========================================================================
+   弹窗
+   ========================================================================== */
+.gm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+
+  background: rgba(44, 62, 70, .38);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+
+.gm-modal.gm-show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.gm-modal-card {
+  width: min(100%, 430px);
+  background: #fff;
+  border-radius: var(--r-lg);
+  padding: 28px 26px 24px;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(16px) scale(.97);
+  transition: transform .3s cubic-bezier(.22, 1, .36, 1);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.gm-modal.gm-show .gm-modal-card {
+  transform: none;
+}
+
+.gm-modal-card .gm-emoji {
+  font-size: 46px;
+  line-height: 1;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.gm-modal-card h2 {
+  text-align: center;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.gm-modal-card .gm-tip {
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  margin-bottom: 20px;
+}
+
+.gm-modal-card label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-2);
+  margin: 14px 0 6px;
+  letter-spacing: .5px;
+}
+
+.gm-modal-card input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: #fbfeff;
+  color: var(--ink);
+  font-size: 15px;
+  font-family: inherit;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.gm-modal-card input:focus {
+  outline: none;
+  border-color: var(--mint);
+  box-shadow: 0 0 0 4px rgba(52, 201, 163, .16);
+}
+
+.gm-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 22px;
+}
+
+/* 结算表格 */
+.gm-result-rows {
+  background: #f7fdfb;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 6px 16px;
+  margin-bottom: 4px;
+}
+
+.gm-result-rows .gm-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  font-size: 14.5px;
+}
+
+.gm-result-rows .gm-row + .gm-row {
+  border-top: 1px dashed var(--line);
+}
+
+.gm-result-rows .gm-row .gm-k { color: var(--ink-3); }
+.gm-result-rows .gm-row .gm-v { font-weight: 800; font-variant-numeric: tabular-nums; }
+.gm-result-rows .gm-row .gm-v.gm-hl { color: var(--mint-dark); font-size: 19px; }
+.gm-result-rows .gm-row .gm-v.gm-new { color: #e0a100; }
+
+/* 词库预览 */
+.gm-preview {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.9;
+}
+
+.gm-preview b { color: var(--sky-dark); }
+
+/* ==========================================================================
+   快捷键提示
+   ========================================================================== */
+.gm-hint-bar {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+kbd {
+  display: inline-block;
+  padding: 1px 7px;
+  margin: 0 1px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+
+/* 平板 / 小笔记本：统计栏改两列 */
+@media (max-width: 720px) {
+  .gm-app { padding: 20px 18px 18px; }
+
+  .gm-stats { grid-template-columns: repeat(2, 1fr); }
+
+  .gm-board { gap: 8px; }
+
+  .gm-board-wrap { padding: 12px; }
+
+  .gm-card .gm-txt { font-size: clamp(12px, 3.4vw, 15px); }
+  .gm-card.gm-en .gm-txt { font-size: clamp(11px, 3.1vw, 14px); }
+}
+
+/* 手机：按钮与难度铺满一行，棋盘保持 4 列但更紧凑 */
+@media (max-width: 480px) {
+  body { padding: 12px 10px 28px; }
+
+  .gm-app { padding: 16px 13px 14px; border-radius: var(--r-md); }
+
+  .gm-head h1 { font-size: 20px; letter-spacing: 1px; }
+
+  .gm-difficulty { gap: 7px; }
+  .gm-diff-pill { padding: 8px 13px; font-size: 13px; }
+  .gm-diff-pill .gm-n { display: none; }   /* 窄屏省略对数说明 */
+
+  .gm-bar { gap: 7px; }
+  .gm-btn { padding: 9px 14px; font-size: 13px; }
+
+  .gm-stats { gap: 7px; }
+  .gm-stat { padding: 8px 4px; }
+  .gm-stat .gm-k { font-size: 10.5px; letter-spacing: .5px; }
+
+  .gm-board { gap: 6px; }
+  .gm-board-wrap { padding: 9px; }
+  .gm-legend { font-size: 11.5px; gap: 12px; margin-bottom: 9px; }
+
+  .gm-card { border-radius: var(--r-sm); }
+  .gm-card .gm-txt { font-size: 12px; font-weight: 700; }
+  .gm-card.gm-en .gm-txt { font-size: 11px; }
+  .gm-card .gm-tag { display: none; }      /* 窄屏隐藏 EN/中文标签，省空间 */
+
+  .gm-status { font-size: 13px; padding: 10px 14px; }
+  .gm-hint-bar { font-size: 11.5px; }
+}
+
+/* 超窄屏：去掉图例，卡片更小 */
+@media (max-width: 360px) {
+  .gm-legend { display: none; }
+  .gm-card .gm-txt { font-size: 11px; }
+  .gm-card.gm-en .gm-txt { font-size: 10px; }
+}
+
+/* 减弱动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ---------------- 生命游戏 ---------------- */
+/* ==========================================================================
+   生命游戏 —— 样式表
+   风格沿用猜词消消乐：薄荷绿 + 天空蓝浅色渐变、糖果质感卡片、柔和彩色投影。
+   ========================================================================== */
+
+:root {
+  /* 主色：清新的青绿 */
+  --mint:        #34c9a3;
+  --mint-dark:   #1fa586;
+  --mint-pale:   #e4f8f2;
+
+  /* 辅色：天空蓝 */
+  --sky:         #3ba9e8;
+  --sky-dark:    #2b8cc4;
+  --sky-pale:    #e3f3fd;
+
+  /* 点缀色 */
+  --sun:         #ffc93c;
+  --coral:       #ff7a6b;
+  --grape:       #9d7bea;
+
+  /* 中性色 */
+  --ink:         #2c3e46;
+  --ink-2:       #5c7078;
+  --ink-3:       #92a5ad;
+  --line:        #e2eef0;
+  --surface:     #ffffff;
+
+  /* 圆角与阴影 */
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 26px;
+  --r-pill: 999px;
+  --shadow-sm: 0 2px 6px rgba(44, 110, 130, .08);
+  --shadow-md: 0 6px 18px rgba(44, 110, 130, .12);
+  --shadow-lg: 0 16px 40px rgba(44, 110, 130, .16);
+
+  --font: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+          "Microsoft YaHei", Roboto, "Helvetica Neue", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+}
+
+lf-body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px 16px 40px;
+
+  background:
+    radial-gradient(circle at 12% 10%, rgba(52, 201, 163, .20), transparent 45%),
+    radial-gradient(circle at 88% 88%, rgba(59, 169, 232, .20), transparent 45%),
+    linear-gradient(160deg, #f2fdfa 0%, #eef9fd 55%, #f4fbff 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.lf-pill, .lf-btn, .lf-stat, .lf-tool {
+  user-select: none;
+}
+
+/* ==========================================================================
+   主容器
+   ========================================================================== */
+.lf-app {
+  width: min(100%, 900px);
+  background: rgba(255, 255, 255, .78);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 26px 26px 22px;
+}
+
+/* ==========================================================================
+   标题
+   ========================================================================== */
+.lf-head {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.lf-head h1 {
+  font-size: clamp(22px, 3.4vw, 30px);
+  font-weight: 800;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lf-head .lf-sub {
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  letter-spacing: .5px;
+}
+
+.lf-head .lf-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.lf-head .lf-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.lf-head .lf-dots i:nth-child(1) { background: var(--mint); }
+.lf-head .lf-dots i:nth-child(2) { background: var(--sky); }
+.lf-head .lf-dots i:nth-child(3) { background: var(--sun); }
+.lf-head .lf-dots i:nth-child(4) { background: var(--coral); }
+.lf-head .lf-dots i:nth-child(5) { background: var(--grape); }
+
+/* ==========================================================================
+   按钮
+   ========================================================================== */
+.lf-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.lf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+
+  border: none;
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, #55b6ea, var(--sky));
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--sky-dark), var(--shadow-sm);
+  transition: transform .1s ease, box-shadow .1s ease;
+}
+
+.lf-btn:hover  { transform: translateY(-1px); box-shadow: 0 5px 0 var(--sky-dark), var(--shadow-md); }
+.lf-btn:lf-active { transform: translateY(3px);  box-shadow: 0 1px 0 var(--sky-dark); }
+
+.lf-btn.lf-green {
+  background: linear-gradient(180deg, #47d6b0, var(--mint));
+  box-shadow: 0 4px 0 var(--mint-dark), var(--shadow-sm);
+}
+.lf-btn.lf-green:hover  { box-shadow: 0 5px 0 var(--mint-dark), var(--shadow-md); }
+.lf-btn.lf-green:lf-active { box-shadow: 0 1px 0 var(--mint-dark); }
+
+/* 运行中：按钮变成"暂停"的暖色，状态一眼可辨 */
+.lf-btn.lf-sun {
+  background: linear-gradient(180deg, #ffd76b, var(--sun));
+  color: #7a5600;
+  box-shadow: 0 4px 0 #d9a017, var(--shadow-sm);
+}
+.lf-btn.lf-sun:hover  { box-shadow: 0 5px 0 #d9a017, var(--shadow-md); }
+.lf-btn.lf-sun:lf-active { box-shadow: 0 1px 0 #d9a017; }
+
+.lf-btn.lf-ghost {
+  background: #fff;
+  color: var(--ink-2);
+  border: 2px solid var(--line);
+  box-shadow: 0 3px 0 var(--line);
+}
+.lf-btn.lf-ghost:hover  { border-color: var(--mint); color: var(--mint-dark); }
+.lf-btn.lf-ghost:lf-active { box-shadow: 0 1px 0 var(--line); }
+
+.lf-btn:disabled { opacity: .45; pointer-events: none; box-shadow: none; }
+
+/* ==========================================================================
+   状态栏
+   ========================================================================== */
+.lf-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.lf-stat {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px 8px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.lf-stat .lf-k {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  letter-spacing: 1px;
+}
+
+.lf-stat .lf-v {
+  font-size: clamp(18px, 2.6vw, 24px);
+  font-weight: 800;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.lf-stat .lf-v.lf-gen   { color: var(--mint-dark); }
+.lf-stat .lf-v.lf-alive { color: var(--sky-dark); }
+.lf-stat .lf-v.lf-born  { color: #e0a100; }
+.lf-stat .lf-v.lf-died  { color: var(--coral); }
+
+/* ==========================================================================
+   控制面板：速度 / 网格
+   ========================================================================== */
+.lf-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px 22px;
+  margin-bottom: 14px;
+  padding: 12px 20px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-sm);
+}
+
+.lf-ctl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lf-ctl .lf-val {
+  min-width: 34px;
+  text-align: right;
+  color: var(--mint-dark);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 滑杆统一样式 */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 116px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--mint-pale), var(--sky-pale));
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #47d6b0, var(--mint));
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(31, 165, 134, .45);
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--mint);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(31, 165, 134, .45);
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   棋盘
+   ========================================================================== */
+.lf-board-wrap {
+  position: relative;
+  background: rgba(255, 255, 255, .66);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 14px;
+  box-shadow: inset 0 2px 10px rgba(44, 110, 130, .05);
+}
+
+canvas#board {
+  display: block;
+  width: 100%;
+  border-radius: var(--r-md);
+  background: linear-gradient(160deg, #fbfeff, #f4fbfd);
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: crosshair;
+  touch-action: none;   /* 手机上拖动绘制时不要滚动页面 */
+}
+
+/* 棋盘上的浮动提示（例如"点格子养细胞"） */
+.lf-board-tip {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+
+  padding: 8px 18px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .92);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+
+  opacity: 0;
+  transition: opacity .4s ease;
+}
+
+.lf-board-tip.lf-show { opacity: 1; }
+
+/* ==========================================================================
+   图案预设
+   ========================================================================== */
+.lf-presets {
+  margin-top: 14px;
+}
+
+.lf-presets .lf-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.lf-presets .lf-title::before,
+.lf-presets .lf-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.lf-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.lf-tool {
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--line);
+  background: #fff;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .14s ease, border-color .2s ease,
+              color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.lf-tool:hover {
+  border-color: var(--sky);
+  color: var(--sky-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.lf-tool.lf-active {
+  background: linear-gradient(180deg, #55b6ea, var(--sky));
+  border-color: var(--sky-dark);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--sky-dark);
+}
+
+/* 图案说明 */
+.lf-preset-note {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  min-height: 20px;
+}
+
+/* ==========================================================================
+   底部状态条
+   ========================================================================== */
+.lf-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 11px 18px;
+
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-sm);
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.lf-status .lf-msg {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.lf-status .lf-chip {
+  background: var(--mint-pale);
+  color: var(--mint-dark);
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: var(--r-pill);
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   规则说明
+   ========================================================================== */
+.lf-rules {
+  margin-top: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.lf-rules summary {
+  padding: 13px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-2);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color .2s ease, background .2s ease;
+}
+
+.lf-rules summary::-webkit-details-marker { display: none; }
+
+.lf-rules summary::after {
+  content: "▾";
+  margin-left: auto;
+  color: var(--ink-3);
+  transition: transform .25s ease;
+}
+
+.lf-rules[open] summary::after { transform: rotate(180deg); }
+
+.lf-rules summary:hover { color: var(--mint-dark); background: #fbfeff; }
+
+.lf-rules .lf-body {
+  padding: 4px 20px 18px;
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.9;
+}
+
+.lf-rules .lf-body ul { padding-left: 20px; }
+.lf-rules .lf-body li { margin: 5px 0; }
+.lf-rules .lf-body b { color: var(--mint-dark); }
+.lf-rules .lf-body .lf-k { color: var(--sky-dark); font-weight: 700; }
+
+/* ==========================================================================
+   快捷键提示
+   ========================================================================== */
+.lf-hint-bar {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+kbd {
+  display: inline-block;
+  padding: 1px 7px;
+  margin: 0 1px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media (max-width: 720px) {
+  .lf-app { padding: 20px 18px 18px; }
+  .lf-stats { grid-template-columns: repeat(2, 1fr); }
+  input[type="range"] { width: 88px; }
+}
+
+@media (max-width: 480px) {
+  lf-body { padding: 12px 10px 28px; }
+  .lf-app { padding: 16px 13px 14px; border-radius: var(--r-md); }
+
+  .lf-head h1 { font-size: 20px; letter-spacing: 1px; }
+
+  .lf-bar { gap: 7px; }
+  .lf-btn { padding: 9px 14px; font-size: 13px; }
+
+  .lf-panel { gap: 10px 16px; padding: 10px 14px; border-radius: var(--r-md); }
+
+  .lf-stats { gap: 7px; }
+  .lf-stat { padding: 8px 4px; }
+  .lf-stat .lf-k { font-size: 10.5px; letter-spacing: .5px; }
+
+  .lf-board-wrap { padding: 9px; }
+
+  .lf-tool { padding: 7px 13px; font-size: 12.5px; }
+
+  .lf-status { font-size: 13px; padding: 10px 14px; }
+  .lf-hint-bar { font-size: 11.5px; }
+  kbd { font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: .01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+  <!-- ==================== 游戏切换 ==================== -->
+  <nav class="switcher" id="switcher" aria-label="游戏切换">
+    <button type="button" class="active" data-target="pane-gm">🔤 猜词消消乐</button>
+    <button type="button" class="" data-target="pane-lf">🧫 生命游戏</button>
+  </nav>
+
+<!-- ==================== 猜词消消乐 ==================== -->
+<div class="game-pane" id="pane-gm">
+<div class="gm-app">
+
+  <!-- ==================== 标题 ==================== -->
+  <header class="gm-head">
+    <h1><span class="gm-em">🔤</span>猜词消消乐</h1>
+    <p class="gm-sub">点英文，再点它对应的中文 —— 配对成功即可消除</p>
+    <div class="gm-dots" aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i>
+    </div>
+  </header>
+
+  <!-- ==================== 难度 ==================== -->
+  <div class="gm-difficulty" role="group" aria-label="选择难度">
+    <button class="gm-diff-pill gm-active" data-pairs="4" type="button">
+      轻松 <span class="gm-n">4 对</span>
+    </button>
+    <button class="gm-diff-pill" data-pairs="8" type="button">
+      标准 <span class="gm-n">8 对</span>
+    </button>
+    <button class="gm-diff-pill" data-pairs="12" type="button">
+      挑战 <span class="gm-n">12 对</span>
+    </button>
+    <button class="gm-diff-pill" data-pairs="15" type="button">
+      全部 <span class="gm-n">15 对</span>
+    </button>
+  </div>
+
+  <!-- ==================== 操作按钮 ==================== -->
+  <div class="gm-bar">
+    <button class="gm-btn gm-green" id="gm-btnStart" type="button">▶ 开始游戏</button>
+    <button class="gm-btn" id="gm-btnRestart" type="button">⟲ 重来</button>
+    <button class="gm-btn gm-sun" id="gm-btnHint" type="button">💡 提示</button>
+    <button class="gm-btn gm-ghost" id="gm-btnAdd" type="button">➕ 添加单词</button>
+    <button class="gm-btn gm-ghost" id="gm-btnExit" type="button">⏹ 退出</button>
+  </div>
+
+  <!-- ==================== 状态栏 ==================== -->
+  <div class="gm-stats">
+    <div class="gm-stat">
+      <div class="gm-k">剩余对数</div>
+      <div class="gm-v gm-left" id="gm-sLeft">0</div>
+    </div>
+    <div class="gm-stat">
+      <div class="gm-k">得分</div>
+      <div class="gm-v gm-score" id="gm-sScore">0</div>
+    </div>
+    <div class="gm-stat">
+      <div class="gm-k">连击</div>
+      <div class="gm-v gm-combo" id="gm-sCombo">×1</div>
+    </div>
+    <div class="gm-stat">
+      <div class="gm-k">用时</div>
+      <div class="gm-v gm-time" id="gm-sTime">00:00</div>
+    </div>
+  </div>
+
+  <!-- ==================== 棋盘 ==================== -->
+  <div class="gm-board-wrap">
+    <div class="gm-legend">
+      <span><i class="gm-en"></i>英文单词</span>
+      <span><i class="gm-zh"></i>中文释义</span>
+    </div>
+    <div class="gm-board" id="gm-board"></div>
+  </div>
+
+  <!-- ==================== 底部状态 ==================== -->
+  <div class="gm-status">
+    <span class="gm-msg" id="gm-statusMsg">✨ 选好难度，点「开始游戏」</span>
+    <span class="gm-chip" id="gm-statusChip">最高分 0</span>
+  </div>
+
+  <p class="gm-hint-bar">
+    快捷键：<kbd>空格</kbd> 开始 / 重来 · <kbd>H</kbd> 提示 · <kbd>Esc</kbd> 关闭弹窗
+  </p>
+</div>
+
+<!-- 连击横幅 -->
+<div class="gm-banner" id="gm-banner"></div>
+
+<!-- ==================== 弹窗 ==================== -->
+<div class="gm-modal" id="gm-modal">
+  <div class="gm-modal-card" id="gm-modalCard"></div>
+</div>
+</div>
+
+<!-- ==================== 生命游戏 ==================== -->
+<div class="game-pane" id="pane-lf">
+<div class="lf-app">
+
+  <!-- ==================== 标题 ==================== -->
+  <header class="lf-head">
+    <h1><span class="lf-emoji">🧫</span>生命游戏</h1>
+    <p class="lf-sub">点格子养细胞，然后看它自己繁殖、迁徙、消亡</p>
+    <div class="lf-dots" aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i>
+    </div>
+  </header>
+
+  <!-- ==================== 操作按钮 ==================== -->
+  <div class="lf-bar">
+    <button class="lf-btn lf-green" id="lf-btnPlay" type="button">▶ 开始演化</button>
+    <button class="lf-btn" id="lf-btnStep" type="button">⏭ 单步</button>
+    <button class="lf-btn lf-sun" id="lf-btnRandom" type="button">🎲 随机铺满</button>
+    <button class="lf-btn lf-ghost" id="lf-btnClear" type="button">🧹 清空</button>
+  </div>
+
+  <!-- ==================== 状态栏 ==================== -->
+  <div class="lf-stats">
+    <div class="lf-stat">
+      <div class="lf-k">世代</div>
+      <div class="lf-v lf-gen" id="lf-sGen">0</div>
+    </div>
+    <div class="lf-stat">
+      <div class="lf-k">存活细胞</div>
+      <div class="lf-v lf-alive" id="lf-sAlive">0</div>
+    </div>
+    <div class="lf-stat">
+      <div class="lf-k">本轮新生</div>
+      <div class="lf-v lf-born" id="lf-sBorn">0</div>
+    </div>
+    <div class="lf-stat">
+      <div class="lf-k">本轮消亡</div>
+      <div class="lf-v lf-died" id="lf-sDied">0</div>
+    </div>
+  </div>
+
+  <!-- ==================== 速度与网格 ==================== -->
+  <div class="lf-panel">
+    <label class="lf-ctl" for="lf-rSpeed">
+      速度
+      <input type="range" id="lf-rSpeed" min="1" max="30" step="1" value="10">
+      <span class="lf-val" id="lf-vSpeed">10</span>
+    </label>
+    <label class="lf-ctl" for="lf-rSize">
+      格子
+      <input type="range" id="lf-rSize" min="10" max="30" step="2" value="14">
+      <span class="lf-val" id="lf-vSize">14</span>
+    </label>
+  </div>
+
+  <!-- ==================== 棋盘 ==================== -->
+  <div class="lf-board-wrap">
+    <canvas id="lf-board" width="800" height="500" aria-label="生命游戏棋盘"></canvas>
+    <div class="lf-board-tip lf-show" id="lf-boardTip">👆 先点几个格子，或者直接「随机铺满」</div>
+  </div>
+
+  <!-- ==================== 图案预设 ==================== -->
+  <div class="lf-presets">
+    <div class="lf-title">经典图案 · 点一下放置到棋盘中央</div>
+    <div class="lf-preset-row" id="lf-presetRow"></div>
+    <p class="lf-preset-note" id="lf-presetNote">滑翔机 会斜着一直飞，是生命游戏里最著名的图案</p>
+  </div>
+
+  <!-- ==================== 底部状态 ==================== -->
+  <div class="lf-status">
+    <span class="lf-msg" id="lf-statusMsg">✨ 棋盘是空的，先养几个细胞吧</span>
+    <span class="lf-chip" id="lf-statusChip">边界：环绕</span>
+  </div>
+
+  <!-- ==================== 规则说明 ==================== -->
+  <details class="lf-rules">
+    <summary>📖 它是怎么繁殖的？（三条规则）</summary>
+    <div class="lf-body">
+      <p>
+        每个格子是一个细胞，只有<b>生</b>和<b>死</b>两种状态。每一代，
+        每个细胞看自己周围 8 个邻居，然后按三条规则同时决定下一代的命运：
+      </p>
+      <ul>
+        <li><span class="lf-k">邻居 &lt; 2</span> → 死亡（太孤单，活不下去）</li>
+        <li><span class="lf-k">邻居 = 2 或 3</span> → 存活（活着，继续活）</li>
+        <li><span class="lf-k">邻居 &gt; 3</span> → 死亡（太拥挤，资源不够）</li>
+        <li><span class="lf-k">死格邻居 = 3</span> → 复活（繁殖出一个新细胞）</li>
+      </ul>
+      <p>
+        就这几条判断，却能长出滑翔机、脉冲星这些会移动、会振荡的图案。
+        它由数学家 John Conway 在 1970 年提出，
+        是研究「简单规则如何产生复杂行为」的经典模型。
+      </p>
+    </div>
+  </details>
+
+  <p class="lf-hint-bar">
+    快捷键：<kbd>空格</kbd> 开始 / 暂停 · <kbd>S</kbd> 单步 · <kbd>R</kbd> 随机 · <kbd>C</kbd> 清空
+  </p>
+</div>
+</div>
+
+  <footer class="page-footer">
+    <p><b>姚子健</b> · 华中科技大学</p>
+    <p>两个小游戏合在一个文件里 · 纯 HTML5 + CSS3 + 原生 JavaScript，无任何外部依赖</p>
+  </footer>
+
+<script>
+/* ==================== 猜词消消乐 ==================== */
+(function () {
+/* ==========================================================================
+   猜词消消乐 —— 游戏逻辑
+   --------------------------------------------------------------------------
+   玩法：棋盘上混排英文卡与中文卡，点一张英文再点它对应的中文即配对消除。
+         连击会累积倍率，配对错误会中断连击并短暂锁屏。
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  /* ======================================================================
+     一、词库
+     ====================================================================== */
+
+  /* 内置词库：来自 hxtword.xlsx（英文单词 / 中文释义） */
+  const BUILTIN = [
+    { en: 'apple',    zh: '苹果' },
+    { en: 'book',     zh: '书' },
+    { en: 'cat',      zh: '猫' },
+    { en: 'dog',      zh: '狗' },
+    { en: 'elephant', zh: '大象' },
+    { en: 'flower',   zh: '花' },
+    { en: 'garden',   zh: '花园' },
+    { en: 'house',    zh: '房子' },
+    { en: 'internet', zh: '互联网' },
+    { en: 'journey',  zh: '旅程' },
+    { en: 'king',     zh: '国王' },
+    { en: 'language', zh: '语言' },
+    { en: 'mountain', zh: '山' },
+    { en: 'nature',   zh: '自然' },
+    { en: 'ocean',    zh: '海洋' }
+  ];
+
+  const STORE_WORDS = 'guessMatch.userWords';
+  const STORE_BEST  = 'guessMatch.bestScore';
+
+  /* 读取用户自己添加的词对 */
+  function loadUserWords() {
+    try {
+      const raw = localStorage.getItem(STORE_WORDS);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr.filter(w => w && w.en && w.zh) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveUserWords(list) {
+    try {
+      localStorage.setItem(STORE_WORDS, JSON.stringify(list));
+    } catch (e) {
+      /* 隐私模式下 localStorage 可能不可用，忽略即可 */
+    }
+  }
+
+  /* 合并词库：内置 + 用户添加（用户词库按英文去重） */
+  function allWords() {
+    const seen = new Set();
+    const out = [];
+    BUILTIN.concat(loadUserWords()).forEach(w => {
+      const key = String(w.en).toLowerCase();
+      if (seen.has(key)) { return; }
+      seen.add(key);
+      out.push({ en: String(w.en), zh: String(w.zh) });
+    });
+    return out;
+  }
+
+  /* 每个难度的最高分 */
+  function loadBest() {
+    try {
+      const raw = localStorage.getItem(STORE_BEST);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveBest(obj) {
+    try {
+      localStorage.setItem(STORE_BEST, JSON.stringify(obj));
+    } catch (e) {}
+  }
+
+  /* ======================================================================
+     二、音效（Web Audio API 合成，不依赖音频文件）
+     ====================================================================== */
+  let audioCtx = null;
+  let soundOn = true;
+
+  function tone(freq, dur, type, gain) {
+    if (!soundOn) { return; }
+    try {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) { return; }
+        audioCtx = new AC();
+      }
+      if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+      const vol = gain === undefined ? 0.14 : gain;
+      g.gain.setValueAtTime(vol, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + dur);
+    } catch (e) {
+      /* 音效失败不影响游戏进行 */
+    }
+  }
+
+  const sfx = {
+    pick:  () => tone(720, 0.07, 'triangle', 0.09),
+    match: n => tone(540 + Math.min(n, 8) * 62, 0.15, 'sine', 0.15),
+    miss:  () => { tone(220, 0.14, 'square', 0.09); setTimeout(() => tone(170, 0.16, 'square', 0.07), 85); },
+    hint:  () => tone(980, 0.12, 'sine', 0.10),
+    win:   () => [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'sine', 0.14), i * 110))
+  };
+
+  /* ======================================================================
+     三、状态
+     ====================================================================== */
+  const state = {
+    pairs: 4,          // 当前难度对数
+    cards: [],         // 卡片数组
+    sel: null,         // 当前选中的卡片下标
+    playing: false,    // 是否允许交互
+    locked: false,     // 判定动画期间临时锁屏
+    score: 0,
+    combo: 0,
+    maxCombo: 0,
+    tries: 0,
+    hits: 0,
+    seconds: 0,
+    timer: null,
+    startAt: 0
+  };
+
+  const PAIR_SCORE = 10;    // 每对基础分
+  const MISS_PENALTY = 5;   // 配错扣分
+  const HINT_COST = 8;      // 提示扣分
+  const LOCK_MS = 420;      // 判定动画时长
+
+  /* ======================================================================
+     四、DOM
+     ====================================================================== */
+  const $ = id => document.getElementById(id);
+  const boardEl  = $('gm-board');
+  const modalEl  = $('gm-modal');
+  const modalCard = $('gm-modalCard');
+  const bannerEl = $('gm-banner');
+  const sLeft    = $('gm-sLeft');
+  const sScore   = $('gm-sScore');
+  const sCombo   = $('gm-sCombo');
+  const sTime    = $('gm-sTime');
+  const statusMsg  = $('gm-statusMsg');
+  const statusChip = $('gm-statusChip');
+
+  /* ======================================================================
+     五、工具
+     ====================================================================== */
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function fmtTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+  }
+
+  function setMsg(text) { statusMsg.textContent = text; }
+
+  function refreshBestChip() {
+    const best = loadBest()[state.pairs] || 0;
+    statusChip.textContent = '最高分 ' + best;
+  }
+
+  /* ======================================================================
+     六、计时
+     ====================================================================== */
+  function startTimer() {
+    stopTimer();
+    state.startAt = Date.now();
+    state.seconds = 0;
+    sTime.textContent = '00:00';
+    state.timer = setInterval(function () {
+      state.seconds = Math.floor((Date.now() - state.startAt) / 1000);
+      sTime.textContent = fmtTime(state.seconds);
+    }, 250);
+  }
+
+  function stopTimer() {
+    if (state.timer) {
+      clearInterval(state.timer);
+      state.timer = null;
+    }
+  }
+
+  /* ======================================================================
+     七、界面刷新
+     ====================================================================== */
+  function updateStats() {
+    sLeft.textContent  = state.cards.filter(c => !c.done).length / 2;
+    sScore.textContent = state.score;
+    sCombo.textContent = '×' + Math.max(1, state.combo);
+    refreshBestChip();
+  }
+
+  /* 渲染棋盘 */
+  function render() {
+    boardEl.innerHTML = '';
+
+    /* 未开始 / 已退出：显示引导块 */
+    if (!state.cards.length) {
+      const info = document.createElement('div');
+      info.className = 'gm-board-info';
+      info.innerHTML = state.playing
+        ? '<div class="gm-big">🎯</div><div class="gm-t">准备中…</div>'
+        : '<div class="gm-big">🎈</div>' +
+          '<div class="gm-t">准备好了吗？</div>' +
+          '<div class="gm-d">选好难度，点「开始游戏」就能玩啦</div>';
+      boardEl.appendChild(info);
+      return;
+    }
+
+    state.cards.forEach(function (card, i) {
+      const el = document.createElement('div');
+      el.className = 'gm-card ' + card.lang +
+        (card.done ? ' gm-done' : '') +
+        (state.sel === i && !card.done ? ' gm-selected' : '');
+      el.dataset.i = i;
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', card.done ? '-1' : '0');
+      el.setAttribute('aria-label',
+        (card.lang === 'gm-en' ? '英文 ' : '中文 ') + card.text + (card.done ? '，已消除' : ''));
+
+      const txt = document.createElement('span');
+      txt.className = 'gm-txt';
+      txt.textContent = card.done ? '' : card.text;
+
+      const tag = document.createElement('span');
+      tag.className = 'gm-tag';
+      tag.textContent = card.lang === 'gm-en' ? 'EN' : '中文';
+
+      el.appendChild(txt);
+      el.appendChild(tag);
+      boardEl.appendChild(el);
+    });
+  }
+
+  /* 按数据重绘单个卡片的状态，避免整块重排造成闪烁 */
+  function paintCard(i) {
+    const el = boardEl.querySelector('.gm-card[data-i="' + i + '"]');
+    const card = state.cards[i];
+    if (!el || !card) { return; }
+    el.className = 'gm-card ' + card.lang +
+      (card.done ? ' gm-done' : '') +
+      (state.sel === i && !card.done ? ' gm-selected' : '');
+    el.querySelector('.gm-txt').textContent = card.done ? '' : card.text;
+  }
+
+  /* ======================================================================
+     八、开局 / 结束
+     ====================================================================== */
+  function newGame() {
+    const pool = allWords();
+
+    /* 词库不足时给出提示，而不是静默重复出题 */
+    if (pool.length < state.pairs) {
+      showResult({
+        title: '词库不够啦',
+        emoji: '📚',
+        tip: '当前共 ' + pool.length + ' 对单词，不足以支撑 ' + state.pairs + ' 对难度',
+        rows: [],
+        actions: [
+          { text: '➕ 添加单词', cls: 'gm-btn gm-green', fn: function () { openAddWord(); } },
+          { text: '换个难度', cls: 'gm-btn gm-ghost', fn: closeModal }
+        ]
+      });
+      setMsg('⚠️ 词库不足，先添加一些单词吧');
+      return;
+    }
+
+    const picked = shuffle(pool).slice(0, state.pairs);
+
+    /* 每对拆成两张卡（英文 + 中文），再整体打乱 */
+    const cards = [];
+    picked.forEach(function (w, idx) {
+      cards.push({ text: w.en, lang: 'gm-en', pair: idx, done: false });
+      cards.push({ text: w.zh, lang: 'gm-zh', pair: idx, done: false });
+    });
+
+    state.cards   = shuffle(cards);
+    state.sel     = null;
+    state.playing = true;
+    state.locked  = false;
+    state.score   = 0;
+    state.combo   = 0;
+    state.maxCombo = 0;
+    state.tries   = 0;
+    state.hits    = 0;
+
+    closeModal();
+    render();
+    updateStats();
+    startTimer();
+    setMsg('✨ 点一张英文，再点它对应的中文');
+    $('gm-btnStart').textContent = '⟳ 重新开始';
+    sfx.pick();
+  }
+
+  function exitGame() {
+    stopTimer();
+    state.playing = false;
+    state.locked = false;
+    state.cards = [];
+    state.sel = null;
+    state.score = 0;
+    state.combo = 0;
+    sTime.textContent = '00:00';
+    render();
+    updateStats();
+    setMsg('⏹ 已退出，随时可以重新开始');
+    $('gm-btnStart').textContent = '▶ 开始游戏';
+  }
+
+  function finish() {
+    stopTimer();
+    state.playing = false;
+    state.sel = null;
+
+    const acc = state.tries ? Math.round(state.hits / state.tries * 100) : 100;
+    const used = state.seconds;
+    const total = state.pairs;
+
+    /* 先结算速度奖励，再判定新纪录 ——
+       顺序不能反，否则存下来的最高分会漏掉这笔奖励 */
+    let timeBonus = 0;
+    if (used <= total * 8) {
+      timeBonus = (total * 8 - used) * 2;
+      state.score += timeBonus;
+      sScore.textContent = state.score;
+    }
+
+    const best = loadBest();
+    const prev = best[state.pairs] || 0;
+    const isNew = state.score > prev;
+    if (isNew) {
+      best[state.pairs] = state.score;
+      saveBest(best);
+    }
+
+    /* 根据表现调整文案 */
+    let emoji = '🎉', title = '全部消除！';
+    if (acc === 100 && used <= total * 6)      { emoji = '🏆'; title = '完美通关！'; }
+    else if (acc >= 90)                        { emoji = '🌟'; title = '干得漂亮！'; }
+    else if (acc >= 70)                        { emoji = '🎉'; title = '全部消除！'; }
+    else                                       { emoji = '💪'; title = '通关成功'; }
+
+    sfx.win();
+    render();
+    updateStats();
+
+    showResult({
+      emoji: emoji,
+      title: title,
+      tip: '本轮 ' + total + ' 对单词全部消除',
+      rows: [
+        ['最终得分', state.score + (isNew ? ' 🎊 新纪录' : ''), 'gm-hl'],
+        ['用时',     fmtTime(used)],
+        ['正确率',   acc + '%（' + state.hits + '/' + state.tries + ' 次配对）'],
+        ['最高连击', '×' + Math.max(1, state.maxCombo)],
+        ['速度奖励', timeBonus ? '+' + timeBonus : '无'],
+        ['本难度最高分', best[state.pairs] || 0]
+      ],
+      actions: [
+        { text: '🔄 再来一局', cls: 'gm-btn gm-green', fn: function () { closeModal(); newGame(); } },
+        { text: '换个难度',   cls: 'gm-btn gm-ghost', fn: closeModal }
+      ]
+    });
+
+    setMsg('🎊 通关！用时 ' + fmtTime(used) + '，得分 ' + state.score);
+  }
+
+  /* ======================================================================
+     九、配对判定
+     ====================================================================== */
+  function pick(i) {
+    if (!state.playing || state.locked) { return; }
+    const card = state.cards[i];
+    if (!card || card.done) { return; }
+
+    /* 再点一次取消选中 */
+    if (state.sel === i) {
+      state.sel = null;
+      paintCard(i);
+      return;
+    }
+
+    /* 还没选：选中它 */
+    if (state.sel === null) {
+      state.sel = i;
+      paintCard(i);
+      sfx.pick();
+      return;
+    }
+
+    const a = state.cards[state.sel];
+    const b = card;
+
+    /* 必须是「一张英文 + 一张中文」且属于同一对 */
+    const ok = a.lang !== b.lang && a.pair === b.pair;
+    const firstIdx = state.sel;
+    state.sel = null;
+    state.tries++;
+    state.locked = true;
+
+    if (ok) {
+      /* ---- 配对成功 ---- */
+      state.hits++;
+      state.combo++;
+      state.maxCombo = Math.max(state.maxCombo, state.combo);
+
+      const gain = PAIR_SCORE * state.combo;
+      state.score += gain;
+
+      markClass(firstIdx, 'gm-ok');
+      markClass(i, 'gm-ok');
+      popFloat('+' + gain, i);
+
+      sfx.match(state.combo);
+      if (state.combo >= 2) { showBanner('连击 ×' + state.combo + '!'); }
+
+      /* 连击数字跳动 */
+      sCombo.classList.remove('gm-hot');
+      void sCombo.offsetWidth;
+      sCombo.classList.add('gm-hot');
+
+      setTimeout(function () {
+        a.done = true;
+        b.done = true;
+        paintCard(firstIdx);
+        paintCard(i);
+        state.locked = false;
+        updateStats();
+
+        if (state.cards.every(c => c.done)) {
+          finish();
+        } else {
+          setMsg('✨ 配对成功！继续保持');
+        }
+      }, 380);
+
+    } else {
+      /* ---- 配对失败 ---- */
+      state.combo = 0;
+      state.score = Math.max(0, state.score - MISS_PENALTY);
+
+      markClass(firstIdx, 'gm-bad');
+      markClass(i, 'gm-bad');
+      popFloat('-' + MISS_PENALTY, i, true);
+      sfx.miss();
+
+      setTimeout(function () {
+        clearClass(firstIdx);
+        clearClass(i);
+        state.locked = false;
+        updateStats();
+        setMsg('🤔 这两个不是一对，再看看');
+      }, LOCK_MS);
+
+      updateStats();
+    }
+  }
+
+  /* 给卡片临时加状态类（不影响整体渲染） */
+  function markClass(i, cls) {
+    const el = boardEl.querySelector('.gm-card[data-i="' + i + '"]');
+    if (el) { el.classList.remove('gm-selected'); el.classList.add(cls); }
+  }
+
+  function clearClass(i) {
+    const el = boardEl.querySelector('.gm-card[data-i="' + i + '"]');
+    if (el) { el.classList.remove('gm-ok', 'gm-bad', 'gm-selected'); }
+  }
+
+  /* 在卡片位置弹出得分提示 */
+  function popFloat(text, i, bad) {
+    const el = boardEl.querySelector('.gm-card[data-i="' + i + '"]');
+    if (!el) { return; }
+    const r = el.getBoundingClientRect();
+    const div = document.createElement('div');
+    div.className = 'gm-float';
+    div.textContent = text;
+    if (bad) { div.style.color = 'var(--coral)'; }
+    div.style.left = (r.left + r.width / 2) + 'px';
+    div.style.top  = r.top + 'px';
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 1000);
+  }
+
+  function showBanner(text) {
+    bannerEl.textContent = text;
+    bannerEl.classList.remove('gm-show');
+    void bannerEl.offsetWidth;
+    bannerEl.classList.add('gm-show');
+  }
+
+  /* ======================================================================
+     十、提示：自动帮玩家找出一对可配的卡片
+     ====================================================================== */
+  function useHint() {
+    if (!state.playing || state.locked) {
+      setMsg('先开始游戏再用提示哦');
+      return;
+    }
+
+    const alive = state.cards
+      .map((c, i) => ({ c: c, i: i }))
+      .filter(x => !x.c.done);
+
+    if (!alive.length) { return; }
+
+    /* 找一张英文和它同 pair 的中文 */
+    const en = alive.find(x => x.c.lang === 'gm-en');
+    const zh = alive.find(x => x.c.lang === 'gm-zh' && x.c.pair === en.c.pair);
+    if (!en || !zh) { return; }
+
+    /* 提示不要白给：扣一点分并把连击清零 */
+    state.score = Math.max(0, state.score - HINT_COST);
+    state.combo = 0;
+    updateStats();
+    sfx.hint();
+
+    /* 高亮这一对 1.6 秒 */
+    [en.i, zh.i].forEach(function (i) {
+      const el = boardEl.querySelector('.gm-card[data-i="' + i + '"]');
+      if (!el) { return; }
+      el.classList.add('gm-selected');
+      setTimeout(function () {
+        if (state.sel !== i) { el.classList.remove('gm-selected'); }
+      }, 1600);
+    });
+
+    setMsg('💡 已高亮一对（扣 ' + HINT_COST + ' 分）');
+  }
+
+  /* ======================================================================
+     十一、弹窗
+     ====================================================================== */
+  function showResult(opt) {
+    const rows = (opt.rows || []).map(function (r) {
+      const cls = r[2] ? ' ' + r[2] : '';
+      return '<div class="gm-row"><span class="gm-k">' + r[0] +
+             '</span><span class="gm-v' + cls + '">' + r[1] + '</span></div>';
+    }).join('');
+
+    modalCard.innerHTML =
+      '<div class="gm-emoji">' + opt.emoji + '</div>' +
+      '<h2>' + opt.title + '</h2>' +
+      '<p class="gm-tip">' + opt.tip + '</p>' +
+      (rows ? '<div class="gm-result-rows">' + rows + '</div>' : '') +
+      '<div class="gm-modal-actions"></div>';
+
+    const actions = modalCard.querySelector('.gm-modal-actions');
+    (opt.actions || []).forEach(function (a) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = a.cls;
+      b.textContent = a.text;
+      b.addEventListener('click', a.fn);
+      actions.appendChild(b);
+    });
+
+    modalEl.classList.add('gm-show');
+  }
+
+  function openAddWord() {
+    const userCount = loadUserWords().length;
+
+    modalCard.innerHTML =
+      '<div class="gm-emoji">✏️</div>' +
+      '<h2>添加新单词</h2>' +
+      '<p class="gm-tip">加进来的词会一起参与随机出题，保存在本机浏览器里</p>' +
+      '<label for="inEn">英文单词</label>' +
+      '<input id="inEn" type="text" placeholder="例如：library" autocomplete="off" spellcheck="false">' +
+      '<label for="inZh">中文释义</label>' +
+      '<input id="inZh" type="text" placeholder="例如：图书馆" autocomplete="off" spellcheck="false">' +
+      '<div class="gm-modal-actions">' +
+        '<button class="gm-btn gm-green" id="btnSaveWord" type="button">保存</button>' +
+        '<button class="gm-btn gm-ghost" id="btnCloseModal" type="button">关闭</button>' +
+      '</div>' +
+      '<p class="gm-preview">当前已添加 <b>' + userCount + '</b> 个自定义单词</p>';
+
+    modalEl.classList.add('gm-show');
+    $('inEn').focus();
+
+    $('btnSaveWord').addEventListener('click', saveWord);
+    $('btnCloseModal').addEventListener('click', closeModal);
+
+    /* 回车直接保存 */
+    ['inEn', 'inZh'].forEach(function (id) {
+      $(id).addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); saveWord(); }
+      });
+    });
+  }
+
+  function saveWord() {
+    const en = $('inEn').value.trim();
+    const zh = $('inZh').value.trim();
+
+    if (!en || !zh) {
+      setMsg('⚠️ 英文和中文都要填哦');
+      (!en ? $('inEn') : $('inZh')).focus();
+      return;
+    }
+
+    const list = loadUserWords();
+    /* 英文重复就不再加，避免棋盘上出现两个一样的词 */
+    if (list.some(w => String(w.en).toLowerCase() === en.toLowerCase())) {
+      setMsg('⚠️ 「' + en + '」已经在词库里了');
+      $('inEn').focus();
+      return;
+    }
+
+    list.push({ en: en, zh: zh });
+    saveUserWords(list);
+
+    $('inEn').value = '';
+    $('inZh').value = '';
+    $('inEn').focus();
+
+    /* 更新计数与底部提示 */
+    const counter = modalCard.querySelector('.gm-preview b');
+    if (counter) { counter.textContent = list.length; }
+    setMsg('✅ 已添加「' + en + ' - ' + zh + '」，下一局生效');
+    refreshBestChip();
+  }
+
+  function closeModal() {
+    modalEl.classList.remove('gm-show');
+  }
+
+  /* ======================================================================
+     十二、事件绑定
+     ====================================================================== */
+  /* 棋盘点击（事件委托） */
+  boardEl.addEventListener('click', function (e) {
+    const el = e.target.closest('.gm-card');
+    if (!el) { return; }
+    pick(parseInt(el.dataset.i, 10));
+  });
+
+  /* 键盘操作棋盘卡片，保证可访问性 */
+  boardEl.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') { return; }
+    const el = e.target.closest('.gm-card');
+    if (!el) { return; }
+    e.preventDefault();
+    pick(parseInt(el.dataset.i, 10));
+  });
+
+  /* 难度切换 */
+  Array.prototype.forEach.call(document.querySelectorAll('.gm-diff-pill'), function (btn) {
+    btn.addEventListener('click', function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.gm-diff-pill'), function (b) {
+        b.classList.remove('gm-active');
+      });
+      btn.classList.add('gm-active');
+      state.pairs = parseInt(btn.dataset.pairs, 10);
+      refreshBestChip();
+
+      /* 切换难度后停掉当前局，等玩家重新开始 */
+      if (state.playing) {
+        stopTimer();
+        state.playing = false;
+        state.locked = false;
+        state.cards = [];
+        state.sel = null;
+        sTime.textContent = '00:00';
+        render();
+        updateStats();
+        $('gm-btnStart').textContent = '▶ 开始游戏';
+        setMsg('已切换到 ' + state.pairs + ' 对，点「开始游戏」');
+      } else {
+        setMsg('难度：' + state.pairs + ' 对，点「开始游戏」');
+      }
+    });
+  });
+
+  $('gm-btnStart').addEventListener('click', newGame);
+  $('gm-btnRestart').addEventListener('click', function () {
+    if (state.playing) { newGame(); } else { setMsg('还没有开始游戏呢'); }
+  });
+  $('gm-btnHint').addEventListener('click', useHint);
+  $('gm-btnAdd').addEventListener('click', openAddWord);
+  $('gm-btnExit').addEventListener('click', exitGame);
+
+  /* 点遮罩关闭弹窗 */
+  modalEl.addEventListener('click', function (e) {
+    if (e.target === modalEl) { closeModal(); }
+  });
+
+  /* 快捷键 */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closeModal(); return; }
+
+    /* 输入框里不触发快捷键 */
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') { return; }
+
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (state.playing) { newGame(); } else { newGame(); }
+    } else if (e.key === 'h' || e.key === 'H') {
+      e.preventDefault();
+      useHint();
+    }
+  });
+
+  /* ======================================================================
+     十三、初始化
+     ====================================================================== */
+  state.pairs = 4;
+  state.cards = [];
+  render();
+  updateStats();
+  refreshBestChip();
+
+  console.log('%c猜词消消乐 已加载 ✓', 'color:#1fa586;font-weight:bold');
+  console.log('词库：内置 ' + BUILTIN.length + ' 对 + 自定义 ' + loadUserWords().length + ' 对');
+
+})();
+})();
+
+/* ==================== 生命游戏 ==================== */
+(function () {
+/* ==========================================================================
+   生命游戏 —— 逻辑
+   --------------------------------------------------------------------------
+   规则：康威生命游戏（B3/S23）
+     死格邻居恰好 3 个 → 复活
+     活格邻居 2 或 3 个 → 存活
+     其余情况 → 死亡
+   边界：环绕（上下左右连通，像球面一样）
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  /* ======================================================================
+     一、配置
+     ====================================================================== */
+  const CELL_MIN = 10;    // 格子最小像素
+  const CELL_MAX = 30;    // 格子最大像素
+  const DENSITY  = 0.28;  // 随机铺满时的存活密度
+
+  /* ======================================================================
+     二、经典图案
+     --------------------------------------------------------------------------
+     '#' 表示活细胞，'.' 表示死细胞；放置时会按该图案裁剪出的边界居中。
+     ====================================================================== */
+  const PRESETS = [
+    {
+      name: '滑翔机',
+      note: '滑翔机会斜着一直飞，是生命游戏里最著名的图案',
+      pattern: [
+        '.#.',
+        '..#',
+        '###'
+      ]
+    },
+    {
+      name: '脉冲星',
+      note: '脉冲星周期为 3，会像心脏一样规律地一张一缩',
+      pattern: [
+        '..###...###..',
+        '.............',
+        '#....#.#....#',
+        '#....#.#....#',
+        '#....#.#....#',
+        '..###...###..',
+        '.............',
+        '..###...###..',
+        '#....#.#....#',
+        '#....#.#....#',
+        '#....#.#....#',
+        '.............',
+        '..###...###..'
+      ]
+    },
+    {
+      name: '轻量飞船',
+      note: '轻量飞船每 4 代前进两格，是移动最快的常见图案之一',
+      pattern: [
+        '.#..#',
+        '#....',
+        '#...#',
+        '####.'
+      ]
+    },
+    {
+      name: '蟾蜍',
+      note: '蟾蜍周期为 2，只有 6 个细胞，却会来回翻转',
+      pattern: [
+        '.###',
+        '###.'
+      ]
+    },
+    {
+      name: '信标',
+      note: '信标周期为 2，会一闪一闪地「呼吸」',
+      pattern: [
+        '##..',
+        '##..',
+        '..##',
+        '..##'
+      ]
+    },
+    {
+      name: '朗肯',
+      note: '朗肯是很稳定的方块群，长期不变，适合当「砖块」用',
+      pattern: [
+        '##.',
+        '##.',
+        '.##',
+        '.##'
+      ]
+    }
+  ];
+
+  /* ======================================================================
+     三、DOM
+     ====================================================================== */
+  const $ = id => document.getElementById(id);
+  const canvas   = $('lf-board');
+  const ctx      = canvas.getContext('2d');
+  const sGen     = $('lf-sGen');
+  const sAlive   = $('lf-sAlive');
+  const sBorn    = $('lf-sBorn');
+  const sDied    = $('lf-sDied');
+  const vSpeed   = $('lf-vSpeed');
+  const vSize    = $('lf-vSize');
+  const rSpeed   = $('lf-rSpeed');
+  const rSize    = $('lf-rSize');
+  const boardTip = $('lf-boardTip');
+  const statusMsg  = $('lf-statusMsg');
+  const presetRow  = $('lf-presetRow');
+  const presetNote = $('lf-presetNote');
+
+  /* ======================================================================
+     四、状态
+     ====================================================================== */
+  const state = {
+    cols: 0,
+    rows: 0,
+    cell: 18,            // 每格像素（画布 CSS 尺寸）
+    grid: null,          // Uint8Array，1 = 活
+    next: null,          // 下一代缓冲
+    age: null,           // 每个活细胞的存活代数，用于出生高亮
+    gen: 0,
+    born: 0,
+    died: 0,
+    running: false,
+    speed: 10,           // 每秒演化代数
+    acc: 0,              // 时间累加器
+    lastTs: 0,
+    raf: null,
+    dpr: 1
+  };
+
+  /* ======================================================================
+     五、尺寸与坐标
+     ====================================================================== */
+
+  /* 按容器宽度和格子大小，算出网格规模并重建数组 */
+  function resizeGrid(keepPattern) {
+    const wrap = canvas.parentNode;
+    /* 棋盘可用宽度 = 容器内宽（减去 padding） */
+    const avail = Math.max(160, wrap.clientWidth - 28);
+    const cell = state.cell;
+
+    state.cols = Math.max(8, Math.floor(avail / cell));
+    state.rows = Math.max(6, Math.round(state.cols * 0.58));   // 略扁，接近 16:9
+
+    const canvasW = state.cols * cell;
+    const canvasH = state.rows * cell;
+
+    /* 物理像素按设备像素比放大，保证线条清晰 */
+    state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width  = Math.round(canvasW * state.dpr);
+    canvas.height = Math.round(canvasH * state.dpr);
+    canvas.style.height = canvasH + 'px';
+    ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+
+    const size = state.cols * state.rows;
+    const oldGrid = state.grid, oldCols = state.__oldCols || 0, oldRows = state.__oldRows || 0;
+
+    state.grid = new Uint8Array(size);
+    state.next = new Uint8Array(size);
+    state.age  = new Uint16Array(size);
+
+    /* 改变格子大小时，尽量把原有图案搬到新的网格中央，避免直接清空 */
+    if (keepPattern && oldGrid && oldCols && oldRows) {
+      const ox = Math.floor((state.cols - oldCols) / 2);
+      const oy = Math.floor((state.rows - oldRows) / 2);
+      for (let y = 0; y < oldRows; y++) {
+        for (let x = 0; x < oldCols; x++) {
+          if (!oldGrid[y * oldCols + x]) { continue; }
+          const nx = x + ox, ny = y + oy;
+          if (nx >= 0 && nx < state.cols && ny >= 0 && ny < state.rows) {
+            state.grid[ny * state.cols + nx] = 1;
+          }
+        }
+      }
+    }
+
+    state.__oldCols = state.cols;
+    state.__oldRows = state.rows;
+
+    draw();
+    updateStats();
+  }
+
+  const idx = (x, y) => y * state.cols + x;
+
+  /* ======================================================================
+     六、绘制
+     ====================================================================== */
+
+  /* 网格底色与细线 */
+  function drawGridLines() {
+    const cell = state.cell;
+    const w = state.cols * cell;
+    const h = state.rows * cell;
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(44, 110, 130, .07)';
+    ctx.lineWidth = 1;
+
+    for (let x = 1; x < state.cols; x++) {
+      ctx.beginPath();
+      ctx.moveTo(x * cell + .5, 0);
+      ctx.lineTo(x * cell + .5, h);
+      ctx.stroke();
+    }
+    for (let y = 1; y < state.rows; y++) {
+      ctx.beginPath();
+      ctx.moveTo(0, y * cell + .5);
+      ctx.lineTo(w, y * cell + .5);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* 单个细胞：新生的用暖黄，存活的用青绿→天蓝渐变 */
+  function drawCell(x, y, isNew) {
+    const cell = state.cell;
+    const pad = Math.max(1, Math.round(cell * 0.09));
+    const px = x * cell + pad;
+    const py = y * cell + pad;
+    const size = cell - pad * 2;
+
+    if (isNew) {
+      ctx.fillStyle = '#ffc93c';
+    } else {
+      /* 按行做一点色相变化，让整片细胞看起来有层次 */
+      const t = state.rows > 1 ? y / (state.rows - 1) : 0;
+      const r = Math.round(52  + (59  - 52)  * t);
+      const g = Math.round(201 + (169 - 201) * t);
+      const b = Math.round(163 + (232 - 163) * t);
+      ctx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+    }
+
+    const radius = Math.max(2, Math.round(cell * 0.26));
+    roundRect(px, py, size, size, radius);
+    ctx.fill();
+  }
+
+  function roundRect(x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.lineTo(x + w - rr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+    ctx.lineTo(x + w, y + h - rr);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+    ctx.lineTo(x + rr, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+    ctx.lineTo(x, y + rr);
+    ctx.quadraticCurveTo(x, y, x + rr, y);
+    ctx.closePath();
+  }
+
+  /* 全量重绘 */
+  function draw() {
+    const w = state.cols * state.cell;
+    const h = state.rows * state.cell;
+
+    ctx.clearRect(0, 0, w, h);
+    drawGridLines();
+
+    for (let y = 0; y < state.rows; y++) {
+      for (let x = 0; x < state.cols; x++) {
+        const i = idx(x, y);
+        if (state.grid[i]) {
+          /* age === 1 表示这一代刚出生 */
+          drawCell(x, y, state.age[i] === 1);
+        }
+      }
+    }
+  }
+
+  /* ======================================================================
+     七、演化（核心规则）
+     ====================================================================== */
+  function step() {
+    const cols = state.cols, rows = state.rows;
+    const grid = state.grid, next = state.next, age = state.age;
+    let born = 0, died = 0, alive = 0;
+
+    for (let y = 0; y < rows; y++) {
+      /* 环绕边界：上一行 / 下一行 */
+      const yUp = (y - 1 + rows) % rows;
+      const yDn = (y + 1) % rows;
+
+      for (let x = 0; x < cols; x++) {
+        const xL = (x - 1 + cols) % cols;
+        const xR = (x + 1) % cols;
+
+        /* 统计 8 个邻居 */
+        let n = 0;
+        n += grid[yUp * cols + xL] + grid[yUp * cols + x] + grid[yUp * cols + xR];
+        n += grid[y    * cols + xL] +                        grid[y    * cols + xR];
+        n += grid[yDn * cols + xL] + grid[yDn * cols + x] + grid[yDn * cols + xR];
+
+        const i = y * cols + x;
+        const wasAlive = grid[i] === 1;
+
+        /* B3/S23 */
+        let willLive = false;
+        if (wasAlive) {
+          willLive = (n === 2 || n === 3);
+        } else {
+          willLive = (n === 3);
+        }
+
+        if (willLive) {
+          next[i] = 1;
+          alive++;
+          if (!wasAlive) {
+            born++;
+            age[i] = 1;                       /* 新生 */
+          } else {
+            age[i] = age[i] ? age[i] + 1 : 2; /* 继续存活，代数 +1 */
+          }
+        } else {
+          next[i] = 0;
+          age[i] = 0;
+          if (wasAlive) { died++; }
+        }
+      }
+    }
+
+    /* 交换缓冲，避免每代都新建数组 */
+    state.grid = next;
+    state.next = grid;
+
+    state.gen++;
+    state.born = born;
+    state.died = died;
+
+    /* 同步界面：alive 刚刚统计过，直接传进去 */
+    updateStats(alive);
+    draw();
+
+    return { born: born, died: died, alive: alive };
+  }
+
+  /* ======================================================================
+     八、界面刷新
+     ====================================================================== */
+  function countAlive() {
+    let n = 0;
+    for (let i = 0; i < state.grid.length; i++) { n += state.grid[i]; }
+    return n;
+  }
+
+  /* 刷新状态栏。alive 可选：演化时已经算过了，直接传进来避免重复遍历 */
+  function updateStats(aliveCount) {
+    const alive = (typeof aliveCount === 'number') ? aliveCount : countAlive();
+
+    sGen.textContent   = state.gen;
+    sAlive.textContent = alive;
+    sBorn.textContent  = state.born;
+    sDied.textContent  = state.died;
+    return alive;
+  }
+
+  function setMsg(text) { statusMsg.textContent = text; }
+
+  function showTip(show) {
+    boardTip.classList.toggle('lf-show', !!show);
+  }
+
+  /* ======================================================================
+     九、运行控制
+     ====================================================================== */
+  function loop(ts) {
+    if (!state.running) { return; }
+
+    if (!state.lastTs) { state.lastTs = ts; }
+    const dt = Math.min(ts - state.lastTs, 250);   /* 卡顿时限制步进量 */
+    state.lastTs = ts;
+
+    state.acc += dt;
+    const interval = 1000 / state.speed;
+
+    /* 一帧内最多演化若干代，避免速度拉满时卡死 */
+    let guard = 0;
+    while (state.acc >= interval && guard < 8) {
+      state.acc -= interval;
+      const r = step();
+      guard++;
+
+      /* 全部死光就自动停下，免得空转 */
+      if (r.alive === 0) {
+        stop();
+        setMsg('💀 细胞全部消亡了，棋盘已空');
+        showTip(true);
+        boardTip.textContent = '👆 画点新的细胞，再来一次';
+        return;
+      }
+    }
+
+    state.raf = requestAnimationFrame(loop);
+  }
+
+  function start() {
+    if (state.running) { return; }
+
+    /* 空棋盘上直接开始没有意义，先随机铺一点 */
+    if (countAlive() === 0) {
+      randomFill();
+      setMsg('🎲 棋盘原本是空的，先随机铺了一层');
+    } else {
+      setMsg('🧬 演化中…看它们怎么自己长');
+    }
+
+    state.running = true;
+    state.lastTs = 0;
+    state.acc = 0;
+    $('lf-btnPlay').textContent = '⏸ 暂停';
+    $('lf-btnPlay').classList.remove('lf-green');
+    $('lf-btnPlay').classList.add('lf-sun');
+    showTip(false);
+    state.raf = requestAnimationFrame(loop);
+  }
+
+  function stop() {
+    state.running = false;
+    if (state.raf) { cancelAnimationFrame(state.raf); state.raf = null; }
+    $('lf-btnPlay').textContent = '▶ 开始演化';
+    $('lf-btnPlay').classList.add('lf-green');
+    $('lf-btnPlay').classList.remove('lf-sun');
+  }
+
+  function toggle() {
+    if (state.running) {
+      stop();
+      setMsg('⏸ 已暂停在第 ' + state.gen + ' 代');
+    } else {
+      start();
+    }
+  }
+
+  /* 单步：只在暂停时可用 */
+  function stepOnce() {
+    if (state.running) { stop(); }
+    const r = step();
+    if (r.alive === 0) {
+      setMsg('💀 这一步之后细胞全没了（第 ' + state.gen + ' 代）');
+      showTip(true);
+      boardTip.textContent = '👆 画点新的细胞，再来一次';
+    } else {
+      setMsg('⏭ 第 ' + state.gen + ' 代：新生 ' + r.born + ' · 消亡 ' + r.died);
+      showTip(false);
+    }
+  }
+
+  /* ======================================================================
+     十、编辑棋盘
+     ====================================================================== */
+  function clearBoard() {
+    stop();
+    state.grid.fill(0);
+    state.next.fill(0);
+    state.age.fill(0);
+    state.gen = 0;
+    state.born = 0;
+    state.died = 0;
+    updateStats(0);
+    draw();
+    setMsg('🧹 已清空，棋盘是空的');
+    showTip(true);
+    boardTip.textContent = '👆 先点几个格子，或者直接「随机铺满」';
+    /* 清空后取消预设的选中态 */
+    Array.prototype.forEach.call(presetRow.children, b => b.classList.remove('lf-active'));
+  }
+
+  function randomFill() {
+    stop();
+    const density = DENSITY;
+    for (let i = 0; i < state.grid.length; i++) {
+      state.grid[i] = Math.random() < density ? 1 : 0;
+    }
+    /* 随机铺的细胞都算"活着"，给个中等 age，避免整屏都是新生色 */
+    for (let i = 0; i < state.age.length; i++) {
+      state.age[i] = state.grid[i] ? 3 : 0;
+    }
+    state.gen = 0;
+    state.born = 0;
+    state.died = 0;
+    const alive = countAlive();
+    updateStats(alive);
+    draw();
+    setMsg('🎲 随机铺了 ' + alive + ' 个细胞，点「开始演化」吧');
+    showTip(false);
+    Array.prototype.forEach.call(presetRow.children, b => b.classList.remove('lf-active'));
+  }
+
+  /* 把图案放到棋盘中央 */
+  function placePattern(preset) {
+    stop();
+
+    const pat = preset.pattern;
+    const ph = pat.length;
+    const pw = Math.max.apply(null, pat.map(r => r.length));
+
+    if (pw > state.cols || ph > state.rows) {
+      setMsg('⚠️ 棋盘（' + state.cols + '×' + state.rows + '）放不下这个图案');
+      return;
+    }
+
+    state.grid.fill(0);
+    state.next.fill(0);
+    state.age.fill(0);
+
+    const ox = Math.floor((state.cols - pw) / 2);
+    const oy = Math.floor((state.rows - ph) / 2);
+
+    let placed = 0;
+    for (let y = 0; y < ph; y++) {
+      const row = pat[y];
+      for (let x = 0; x < row.length; x++) {
+        if (row.charAt(x) === '#') {
+          state.grid[idx(ox + x, oy + y)] = 1;
+          state.age[idx(ox + x, oy + y)] = 3;
+          placed++;
+        }
+      }
+    }
+
+    state.gen = 0;
+    state.born = 0;
+    state.died = 0;
+    updateStats(placed);
+    draw();
+    setMsg('🧩 已放置「' + preset.name + '」（' + placed + ' 个细胞），点「开始演化」');
+    presetNote.textContent = preset.note;
+    showTip(false);
+
+    Array.prototype.forEach.call(presetRow.children, function (b) {
+      b.classList.toggle('lf-active', b.dataset.name === preset.name);
+    });
+  }
+
+  /* ======================================================================
+     十一、鼠标 / 触摸绘制
+     ====================================================================== */
+
+  /* 把指针位置换算成格子坐标 */
+  function cellFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / rect.width  * state.cols);
+    const y = Math.floor((e.clientY - rect.top)  / rect.height * state.rows);
+    if (x < 0 || x >= state.cols || y < 0 || y >= state.rows) { return null; }
+    return { x: x, y: y };
+  }
+
+  let painting = false;
+  let paintValue = 1;      /* 按下时决定这一笔是画还是擦 */
+  let painted = 0;
+
+  function applyPaint(c) {
+    if (!c) { return; }
+    const i = idx(c.x, c.y);
+    if (state.grid[i] === paintValue) { return; }
+    state.grid[i] = paintValue;
+    state.age[i] = paintValue ? 3 : 0;
+    painted++;
+  }
+
+  canvas.addEventListener('pointerdown', function (e) {
+    const c = cellFromEvent(e);
+    if (!c) { return; }
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+
+    /* 暂停时才允许编辑，避免和演化抢棋盘 */
+    if (state.running) { stop(); setMsg('⏸ 绘制时已自动暂停'); }
+
+    /* 点已活的格子 = 擦除；点空格 = 画上 */
+    paintValue = state.grid[idx(c.x, c.y)] ? 0 : 1;
+    painting = true;
+    painted = 0;
+    applyPaint(c);
+    draw();
+    showTip(false);
+  });
+
+  canvas.addEventListener('pointermove', function (e) {
+    if (!painting) { return; }
+    e.preventDefault();
+    const c = cellFromEvent(e);
+    if (!c) { return; }
+    const before = painted;
+    applyPaint(c);
+    if (painted !== before) { draw(); }
+  });
+
+  function endPaint() {
+    if (!painting) { return; }
+    painting = false;
+    const alive = countAlive();
+    updateStats(alive);
+    setMsg(paintValue ? '🖌 画上了 ' + painted + ' 个细胞（共 ' + alive + ' 个）'
+                      : '🧽 擦掉了 ' + painted + ' 个细胞（共 ' + alive + ' 个）');
+  }
+
+  canvas.addEventListener('pointerup', endPaint);
+  canvas.addEventListener('pointercancel', endPaint);
+  canvas.addEventListener('pointerleave', function () { if (painting) { endPaint(); } });
+
+  /* ======================================================================
+     十二、事件绑定
+     ====================================================================== */
+  $('lf-btnPlay').addEventListener('click', toggle);
+  $('lf-btnStep').addEventListener('click', stepOnce);
+  $('lf-btnRandom').addEventListener('click', function () { randomFill(); });
+  $('lf-btnClear').addEventListener('click', clearBoard);
+
+  /* 速度 */
+  rSpeed.addEventListener('input', function () {
+    state.speed = parseInt(rSpeed.value, 10);
+    vSpeed.textContent = state.speed;
+    state.acc = 0;
+  });
+
+  /* 格子大小：重建网格并保留原有图案 */
+  rSize.addEventListener('input', function () {
+    state.cell = parseInt(rSize.value, 10);
+    vSize.textContent = state.cell;
+    resizeGrid(true);
+    setMsg('🔍 格子大小已调整为 ' + state.cell + ' 像素');
+  });
+
+  /* 生成预设按钮 */
+  PRESETS.forEach(function (p) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'lf-tool';
+    b.textContent = p.name;
+    b.dataset.name = p.name;
+    b.addEventListener('click', function () { placePattern(p); });
+    presetRow.appendChild(b);
+  });
+
+  /* 窗口尺寸变化：重算网格，尽量保住图案 */
+  let resizeTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { resizeGrid(true); }, 180);
+  });
+
+  /* 快捷键 */
+  document.addEventListener('keydown', function (e) {
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') { return; }
+
+    if (e.code === 'Space')      { e.preventDefault(); toggle(); }
+    else if (e.key === 's' || e.key === 'S') { e.preventDefault(); stepOnce(); }
+    else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); randomFill(); }
+    else if (e.key === 'c' || e.key === 'C') { e.preventDefault(); clearBoard(); }
+  });
+
+  /* 页面切到后台时暂停，避免回来时瞬间跳很多代 */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && state.running) {
+      stop();
+      setMsg('⏸ 页面切走了，已自动暂停在第 ' + state.gen + ' 代');
+    }
+  });
+
+  /* 与另一个游戏共处一页时（合并版 games.html）会派发 panechange：
+     切走时先暂停，别在后台空转。网格重建由切换脚本调用 __lfRefit 完成 */
+  document.addEventListener('panechange', function (e) {
+    /* 单独打开本文件时没有 .game-pane，这套逻辑不适用 */
+    const ownPane = document.querySelector('.game-pane');
+    if (!ownPane) { return; }
+
+    const target = e && e.detail ? e.detail.target : null;
+    if (ownPane.id !== target && state.running) {
+      stop();
+      setMsg('⏸ 已暂停（切到了另一个游戏）');
+    }
+  });
+
+  /* ----------------------------------------------------------------------
+     十三、初始化
+     ---------------------------------------------------------------------- */
+  state.cell  = parseInt(rSize.value, 10);
+  state.speed = parseInt(rSpeed.value, 10);
+  vSize.textContent  = state.cell;
+  vSpeed.textContent = state.speed;
+
+  /* 建立网格 */
+  resizeGrid(false);
+
+  /* 开局放一架滑翔机，让页面一进来就有东西可看 */
+  placePattern(PRESETS[0]);
+  setMsg('✨ 已放好一架滑翔机，点「开始演化」看它飞');
+
+  /* 合并版 games.html 里，本游戏初始可能是隐藏的（另一个页签在前），
+     那时量不到容器宽度、网格会算得很小。
+     切换页签后由切换脚本调用这个钩子重算一次即可 ——
+     不必在这里塞一堆观察器。 */
+  window.__lfRefit = function () {
+    resizeGrid(true);
+  };
+
+  console.log('%c生命游戏 已加载 ✓', 'color:#1fa586;font-weight:bold');
+  console.log('规则 B3/S23，边界环绕，网格 ' + state.cols + '×' + state.rows);
+
+})();
+})();
+
+/* ==========================================================================
+   游戏切换逻辑
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var switcher = document.getElementById('switcher');
+  var panes = document.querySelectorAll('.game-pane');
+
+  function show(targetId) {
+    Array.prototype.forEach.call(panes, function (pane) {
+      pane.classList.toggle('active', pane.id === targetId);
+    });
+    Array.prototype.forEach.call(switcher.children, function (btn) {
+      btn.classList.toggle('active', btn.dataset.target === targetId);
+    });
+
+    /* 通知两个游戏：正在跑的先停下来 */
+    document.dispatchEvent(new CustomEvent('panechange', {
+      detail: { target: targetId }
+    }));
+
+    /* 生命游戏在隐藏状态下量不到容器宽度，切回来后重算一次网格 */
+    if (targetId === 'pane-lf' && typeof window.__lfRefit === 'function') {
+      window.__lfRefit();
+    }
+
+    /* 记住选择，刷新后还在同一个游戏里 */
+    try { localStorage.setItem('miniGames.pane', targetId); } catch (e) {}
+  }
+
+  switcher.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-target]');
+    if (btn) { show(btn.dataset.target); }
+  });
+
+  /* 恢复上次的选择，默认第一个 */
+  var saved = null;
+  try { saved = localStorage.getItem('miniGames.pane'); } catch (e) {}
+  var valid = Array.prototype.some.call(panes, function (p) { return p.id === saved; });
+  show(valid ? saved : panes[0].id);
+})();
+</script>
+</body>
+</html>

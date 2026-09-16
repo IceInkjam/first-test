@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>首页 | 姚子健 · 华中科技大学</title>
+  <meta name="description" content="姚子健的个人网站 —— 华中科技大学学生，机械专业，兴趣涵盖三维建模、嵌入式与游戏。">
+  <!-- 全站统一的外部样式表：页面内不写任何内嵌样式表或内联样式 -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ====================================================================
+       上部共同区域：姓名 + 学校 + 校徽 + 背景音乐按钮（五个页面完全一致）
+       ==================================================================== -->
+  <header class="site-header">
+    <div class="header-inner">
+
+      <!-- 左侧：学生姓名与学校 -->
+      <div class="brand">
+        <span class="name">姚子健</span>
+        <span class="school">华中科技大学</span>
+      </div>
+
+      <!-- 右侧：校徽 + 背景音乐播放/暂停按钮 -->
+      <div class="header-right">
+        <img class="logo"
+             src="images/hust_logo.png"
+             data-fallback="hust_logo.png"
+             alt="华中科技大学校徽">
+
+        <button class="music-btn" id="musicBtn" type="button"
+                aria-pressed="false" aria-label="播放背景音乐">
+          <span class="ico" aria-hidden="true">♪</span>
+          <span class="txt">背景音乐</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- 背景音乐：autoplay + loop。浏览器通常会拦截自动播放，
+       此时页面右下角会出现“点击播放”的兜底提示（见 script.js） -->
+  <audio id="bgMusic" src="little_wish.mp3" autoplay loop preload="auto"></audio>
+
+  <!-- ====================================================================
+       中部跳转选单（五个页面完全一致，仅当前页面的链接多一个 active 类）
+       ==================================================================== -->
+  <nav class="site-nav" aria-label="主导航">
+    <div class="nav-inner">
+      <a class="nav-link active" href="index.html">首页</a>
+      <a class="nav-link" href="goal.html">专业目标</a>
+      <a class="nav-link" href="plan.html">四年规划</a>
+      <a class="nav-link" href="project.html">项目展示</a>
+      <a class="nav-link" href="university.html">我的大学</a>
+    </div>
+  </nav>
+
+  <!-- ====================================================================
+       下部差异化介绍：首页 —— 三栏布局（照片 / 自我介绍 / 技能与兴趣）
+       ==================================================================== -->
+  <main>
+    <div class="wrap">
+
+      <div class="page-head">
+        <span class="kicker">Home</span>
+        <h1>你好，我是姚子健</h1>
+        <p>华中科技大学 · 机械专业在读</p>
+      </div>
+
+      <div class="home-grid">
+
+        <!-- ---------- 左栏：照片 ---------- -->
+        <!-- 【替换点】把你的照片放到 images/ 目录并命名为 saixi.jpg（建议正方形，覆盖即可） -->
+        <section class="card photo-card">
+          <img src="images/saixi.jpg"
+               data-fallback="saixi.jpg"
+               alt="个人照片">
+          <p class="caption">个人照片</p>
+        </section>
+
+        <!-- ---------- 中栏：自我介绍 ---------- -->
+        <section class="card">
+          <h2>自我介绍</h2>
+
+          <blockquote class="intro-quote">
+            好奇心强而执行力不足，常有善始而无善终。
+          </blockquote>
+
+          <p>
+            我大概是一个被好奇心牵着走的人。看到 SolidWorks 能把一个想法变成
+            可以旋转查看的三维模型，我就去学建模；听说单片机能让代码真正驱动
+            现实世界里的电机和灯，我就买了块 Arduino 回来折腾。
+          </p>
+          <p>
+            与此同时，我也不得不承认自己的问题：想法很多，收尾很少。
+            书架上摆着几本翻了一半的教材，硬盘里躺着几个只写了个开头的项目。
+            这个网站本身，某种程度上也是我对自己的一个交代 ——
+            至少先把一件事完整地做完、上线、拿得出手。
+          </p>
+          <p>
+            我希望在这里记录自己正在学什么、想成为什么样的人。
+            如果几年后回头看，能发现这些话不再只是"打算"，
+            那就算是有进步了。
+          </p>
+        </section>
+
+        <!-- ---------- 右栏：专业技能与兴趣爱好 ---------- -->
+        <section class="card">
+          <h2>专业技能</h2>
+
+          <!-- 熟练度用点阵表示：5 个点中亮起的数量代表当前水平 -->
+          <div class="skill-item">
+            <div class="row">
+              <span class="skill-name">SolidWorks</span>
+              <span class="skill-lv">三维建模</span>
+            </div>
+            <div class="dots" role="img" aria-label="熟练度 2 级，共 5 级">
+              <i class="on"></i><i class="on"></i><i></i><i></i><i></i>
+            </div>
+          </div>
+
+          <div class="skill-item">
+            <div class="row">
+              <span class="skill-name">Arduino 编程</span>
+              <span class="skill-lv">嵌入式入门</span>
+            </div>
+            <div class="dots" role="img" aria-label="熟练度 2 级，共 5 级">
+              <i class="on"></i><i class="on"></i><i></i><i></i><i></i>
+            </div>
+          </div>
+
+          <div class="skill-item">
+            <div class="row">
+              <span class="skill-name">STM32</span>
+              <span class="skill-lv">嵌入式进阶</span>
+            </div>
+            <div class="dots" role="img" aria-label="熟练度 2 级，共 5 级">
+              <i class="on"></i><i class="on"></i><i></i><i></i><i></i>
+            </div>
+          </div>
+
+          <div class="skill-item">
+            <div class="row">
+              <span class="skill-name">C++</span>
+              <span class="skill-lv">编程语言</span>
+            </div>
+            <div class="dots" role="img" aria-label="熟练度 2 级，共 5 级">
+              <i class="on"></i><i class="on"></i><i></i><i></i><i></i>
+            </div>
+          </div>
+
+          <div class="skill-item">
+            <div class="row">
+              <span class="skill-name">Python</span>
+              <span class="skill-lv">编程语言</span>
+            </div>
+            <div class="dots" role="img" aria-label="熟练度 2 级，共 5 级">
+              <i class="on"></i><i class="on"></i><i></i><i></i><i></i>
+            </div>
+          </div>
+
+          <div class="skill-item">
+            <div class="row">
+              <span class="skill-name">Java</span>
+              <span class="skill-lv">编程语言</span>
+            </div>
+            <div class="dots" role="img" aria-label="熟练度 2 级，共 5 级">
+              <i class="on"></i><i class="on"></i><i></i><i></i><i></i>
+            </div>
+          </div>
+
+          <p class="skill-note">
+            以上皆为"并非精通"，只是用过、能上手。我真正比较有把握的，
+            是把一个想法拆成建模、电路、程序三块分别做出来的那条流程，
+            而不是其中任何一项工具本身。
+          </p>
+
+          <h2 class="card-sub">兴趣爱好 · 游戏</h2>
+          <ul class="tag-list">
+            <li class="tag">POE</li>
+            <li class="tag">POE2</li>
+            <li class="tag">Warframe</li>
+            <li class="tag">Minecraft</li>
+            <li class="tag">Arknights: Endfield</li>
+          </ul>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== 页脚 ==================== -->
+  <footer class="site-footer">
+    <p><strong>姚子健</strong> · 华中科技大学</p>
+    <p>个人网站 · 使用 HTML5 与 CSS3 构建</p>
+  </footer>
+
+  <!-- “点击播放”音乐兜底提示（默认隐藏，由 script.js 控制显示） -->
+  <div class="music-tip" id="musicTip" role="status">
+    <span class="tip-text">🎵 浏览器已阻止背景音乐自动播放，点击右侧按钮开始播放</span>
+    <button id="musicTipBtn" type="button">点击播放</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
