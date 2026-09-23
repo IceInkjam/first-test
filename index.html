@@ -53,6 +53,7 @@
       <a class="nav-link" href="plan.html">四年规划</a>
       <a class="nav-link" href="project.html">项目展示</a>
       <a class="nav-link" href="university.html">我的大学</a>
+      <a class="nav-link" href="assistant.html">校园小助手</a>
     </div>
   </nav>
 
@@ -203,5 +204,20 @@
   </div>
 
   <script src="script.js"></script>
+
+  <!-- ====================================================================
+       校园小助手（学校智能体平台的轻量悬浮挂件）
+       --------------------------------------------------------------------
+       由官方 embedLite.js 生成一个右下角的圆形气泡，点击展开对话窗口。
+       它是 position:fixed 的独立挂件，不影响本页布局。
+       若学校服务不可用，气泡会显示错误提示，不影响网站其他功能。
+       ==================================================================== -->
+  <script src="https://agent.hust.edu.cn/resources/product/llm/public/sdk/embedLite.js"></script>
+  <script>
+    new HiagentWebSDK.WebLiteClient({
+      appKey: "daprpdro5a80b5nhbqt0",
+      baseUrl: "https://agent.hust.edu.cn",
+    });
+  </script>
 </body>
 </html>

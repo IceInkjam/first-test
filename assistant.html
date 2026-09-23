@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>校园小助手 | 姚子健 · 华中科技大学</title>
+  <meta name="description" content="华中科技大学智能体「校园小助手」，可在页面内直接对话。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 上部共同区域（与其他页面一致） -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="name">姚子健</span>
+        <span class="school">华中科技大学</span>
+      </div>
+      <div class="header-right">
+        <img class="logo" src="images/hust_logo.png" data-fallback="hust_logo.png"
+             alt="华中科技大学校徽">
+        <button class="music-btn" id="musicBtn" type="button"
+                aria-pressed="false" aria-label="播放背景音乐">
+          <span class="ico" aria-hidden="true">♪</span>
+          <span class="txt">背景音乐</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <audio id="bgMusic" src="little_wish.mp3" autoplay loop preload="auto"></audio>
+
+  <!-- 中部跳转选单：当前页为“校园小助手” -->
+  <nav class="site-nav" aria-label="主导航">
+    <div class="nav-inner">
+      <a class="nav-link" href="index.html">首页</a>
+      <a class="nav-link" href="goal.html">专业目标</a>
+      <a class="nav-link" href="plan.html">四年规划</a>
+      <a class="nav-link" href="project.html">项目展示</a>
+      <a class="nav-link" href="university.html">我的大学</a>
+      <a class="nav-link active" href="assistant.html">校园小助手</a>
+    </div>
+  </nav>
+
+  <!-- ==================== 下部：校园小助手 ==================== -->
+  <main>
+    <div class="wrap">
+
+      <div class="page-head">
+        <span class="kicker">Assistant</span>
+        <h1>校园小助手</h1>
+        <p>华中科技大学智能体，可直接在这里提问</p>
+      </div>
+
+      <section class="card">
+        <h2>在线对话</h2>
+        <p class="assistant-note">
+          这是通过学校智能体平台接入的「校园小助手」，在下面的窗口里直接提问即可。
+          首次加载会稍等几秒。
+        </p>
+
+        <!--
+          智能助手的挂载容器。
+          注意：官方 SDK 生成的 iframe 用的是 width/height:100%，
+          百分比高度必须有确定的父高度才能生效 ——
+          所以这里把容器高度写死（见 .assistant-frame 的 height）。
+          同时 SDK 脚本必须放在这个容器**内部**：
+          它通过 document.currentScript.parentElement 决定挂到哪里，
+          放在 body 里就会变成一个横在版式中间的矮条。
+        -->
+        <div class="assistant-frame" id="assistantHost">
+          <script src="https://agent.hust.edu.cn/resources/product/llm/public/sdk/embedFull.js"></script>
+          <script>
+            new HiagentWebSDK.WebClient({
+              appKey: "daprpdro5a80b5nhbqt0",
+              baseUrl: "https://agent.hust.edu.cn",
+              // 是否隐藏侧边栏，默认不隐藏
+              hideSidebar: false,
+            });
+          </script>
+        </div>
+
+        <!-- 助手加载不出来时的说明（正常情况下被 iframe 盖住，看不见） -->
+        <p class="assistant-fallback">
+          如果这里一直空白，可能是校园网环境限制或智能体服务未开放。
+          可以前往 <a href="https://agent.hust.edu.cn" target="_blank" rel="noopener">agent.hust.edu.cn</a> 直接使用。
+        </p>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p><strong>姚子健</strong> · 华中科技大学</p>
+    <p>个人网站 · 使用 HTML5 与 CSS3 构建</p>
+  </footer>
+
+  <div class="music-tip" id="musicTip" role="status">
+    <span class="tip-text">🎵 浏览器已阻止背景音乐自动播放，点击右侧按钮开始播放</span>
+    <button id="musicTipBtn" type="button">点击播放</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

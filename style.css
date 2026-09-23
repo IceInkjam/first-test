@@ -1202,6 +1202,55 @@ img.img-missing {
 }
 
 /* ==========================================================================
+   18. 校园小助手页（assistant.html）
+   --------------------------------------------------------------------------
+   官方 SDK 生成的 iframe 用 width/height:100%。
+   百分比高度必须有确定的父高度才生效，所以这里把挂载容器的高度写死；
+   宽度交给站点自身的响应式布局。
+   ========================================================================== */
+.assistant-frame {
+  height: 720px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;        /* 让 iframe 的圆角跟着容器走 */
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+/* SDK 生成的 iframe 自身也补一下圆角 */
+.assistant-frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: var(--r-md);
+}
+
+.assistant-note {
+  margin-bottom: 16px;
+  font-size: 14.5px;
+  color: var(--text-2);
+}
+
+.assistant-fallback {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.assistant-fallback a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* 手机上矮一些，避免一屏看不到底 */
+@media (max-width: 680px) {
+  .assistant-frame {
+    height: 560px;
+  }
+}
+
+/* ==========================================================================
    17. 打印样式（作业常需要打印或导出 PDF，顺手优化一下）
    ========================================================================== */
 @media print {

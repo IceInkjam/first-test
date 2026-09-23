@@ -1,6 +1,6 @@
 # 姚子健 · 个人网站
 
-一个纯静态的 5 页面个人网站，使用 **HTML5 + CSS3 + 原生 JavaScript** 实现，不依赖任何前端框架。
+一个纯静态的 6 页面个人网站，使用 **HTML5 + CSS3 + 原生 JavaScript** 实现，不依赖任何前端框架。
 
 ---
 
@@ -11,8 +11,9 @@
 ├── index.html          首页（照片 / 自我介绍 / 专业技能与兴趣爱好）
 ├── goal.html           专业目标
 ├── plan.html           四年规划
-├── project.html        项目展示（占位 + 猜词消消乐入口）
+├── project.html        项目展示（内嵌两个可玩的游戏）
 ├── university.html     我的大学
+├── assistant.html      校园小助手（接入学校智能体平台）
 ├── style.css           全站唯一样式表（所有页面通过 <link> 引入）
 ├── script.js           公共脚本（背景音乐控制 + 头部滚动效果）
 │
@@ -166,7 +167,52 @@ node tools/build-combined.js
 
 ---
 
-## 六、关于三个素材文件（重要）
+## 六、校园小助手（`assistant.html`）
+
+接入华中科技大学智能体平台（`agent.hust.edu.cn`）的「校园小助手」，两种形式：
+
+| 位置 | SDK | 形态 |
+|---|---|---|
+| `assistant.html` | `embedFull.js` / `WebClient` | 页面内的完整对话窗口 |
+| `index.html` 等页面 | `embedLite.js` / `WebLiteClient` | 右下角圆形悬浮气泡，点击展开 |
+
+### ⚠️ 两条实测出来的关键约束
+
+**1. `embedFull` 的脚本必须写在挂载容器内部**
+
+它靠 `document.currentScript.parentElement` 决定 iframe 挂到哪。
+写在容器外面，iframe 就会挂到 `body` 上——实测尺寸变成 735×150 的一条，
+横在版式中间把内容往下挤。
+
+正确写法：
+
+```html
+<div class="assistant-frame" id="assistantHost">
+  <script src=".../embedFull.js"></script>
+  <script>new HiagentWebSDK.WebClient({ appKey: "...", baseUrl: "..." });</script>
+</div>
+```
+
+**2. 挂载容器必须有确定高度**
+
+iframe 用的是 `width:100%; height:100%`，百分比高度要有父高度才生效。
+容器不给高度，iframe 就会塌成 0 高，页面上什么都看不到。
+所以 `.assistant-frame` 里写死了 `height: 720px`（手机上 560px）。
+
+### 域名白名单
+
+SDK 会拉取智能体配置并检查当前域名是否在 `WebSdkConfig.WebSiteList` 里。
+实测该 appKey 返回的配置是 `{AppName:"校园小助手", AppImage:"..."}`，
+**没有 `WebSiteList` 字段**；而 SDK 的判断是「列表为空 = 允许所有域名」，
+所以本地和 GitHub Pages 都能直接跑。
+
+已知小问题：悬浮气泡的 `z-index` 是 1000，比站点的音乐提示条（200）高，
+两者在右下角重叠时，「点击播放」按钮会被盖住。音乐自动播放失败时
+那个提示条会消失，也可以直接点顶部的「背景音乐」按钮。
+
+---
+
+## 七、关于三个素材文件（重要）
 
 | 文件 | 当前内容 | 你需要做的 |
 |---|---|---|
